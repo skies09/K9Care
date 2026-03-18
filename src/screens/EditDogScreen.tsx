@@ -11,6 +11,7 @@ import {
 	Platform,
 	Image,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
@@ -23,6 +24,13 @@ import type { ConditionTag } from "../types";
 import type { RootStackParamList } from "../navigation/RootNavigator";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
+
+function formatDateYYYYMMDD(date: Date): string {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
+}
 
 const CONDITION_OPTIONS: { id: ConditionTag; label: string }[] = [
 	{ id: "heart", label: "Heart" },
@@ -46,6 +54,11 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 	const [name, setName] = useState(dog?.name ?? "");
 	const [breed, setBreed] = useState(dog?.breed ?? "");
 	const [dob, setDob] = useState(dog?.dob ?? "");
+	const [dobObj, setDobObj] = useState<Date>(
+		dog?.dob ? new Date(`${dog.dob}T00:00:00`) : new Date(),
+	);
+	const [showDobPicker, setShowDobPicker] = useState(false);
+	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
 	const [weight, setWeight] = useState(
 		dog?.weightKg != null ? String(dog.weightKg) : "",
 	);
@@ -62,20 +75,24 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 	const buildPayload = useCallback(
 		(photo: string | null) => {
 			const weightNum = weight.trim() ? parseFloat(weight) : null;
+			const weightKg =
+				weightNum != null && Number.isFinite(weightNum)
+					? weightUnit === "kg"
+						? weightNum
+						: weightNum * 0.453592
+					: null;
 			return {
 				name: name.trim(),
 				breed: breed.trim() || null,
 				dob: dob.trim() || null,
 				weightKg:
-					weightNum != null && Number.isFinite(weightNum)
-						? weightNum
-						: null,
+					weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
 				notes: notes.trim() || null,
 				photoUri: photo,
 				primaryConditions: selectedConditions,
 			};
 		},
-		[name, breed, dob, weight, notes, selectedConditions],
+		[name, breed, dob, weight, weightUnit, notes, selectedConditions],
 	);
 
 	// Auto-save form fields (debounced). Skip first mount.
@@ -92,6 +109,11 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 		}, 600);
 		return () => clearTimeout(t);
 	}, [dogId, name, breed, dob, weight, notes, selectedConditions]);
+
+	useEffect(() => {
+		const parsed = new Date(`${dob}T00:00:00`);
+		if (!Number.isNaN(parsed.getTime())) setDobObj(parsed);
+	}, [dob]);
 
 	const toggleCondition = (id: ConditionTag) => {
 		setSelectedConditions((prev) => {
@@ -212,6 +234,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 								</TouchableOpacity>
 							)}
 						</View>
+						<Text style={styles.fieldLabel}>Name</Text>
 						<TextInput
 							style={styles.input}
 							value={name}
@@ -219,6 +242,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 							placeholder="Dog's name"
 							placeholderTextColor={colors.textSecondary}
 						/>
+						<Text style={styles.fieldLabel}>Breed</Text>
 						<TextInput
 							style={styles.input}
 							value={breed}
@@ -226,26 +250,103 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 							placeholder="Breed (optional)"
 							placeholderTextColor={colors.textSecondary}
 						/>
-						<View style={styles.fieldRow}>
+						<Text style={styles.fieldLabel}>Birthday</Text>
+						<TouchableOpacity
+							style={[styles.input, styles.dateInput]}
+							onPress={() => setShowDobPicker(true)}
+							activeOpacity={0.85}
+						>
+							<Text style={styles.dateInputValueLeft}>
+								{dob?.trim() ? dob : "Select date"}
+							</Text>
+							<Text style={styles.dateInputChevron} accessibilityElementsHidden>
+								›
+							</Text>
+						</TouchableOpacity>
+						{showDobPicker && (
+							<View style={styles.datePickerWrap}>
+								<DateTimePicker
+									value={dobObj}
+									mode="date"
+									display={Platform.OS === "ios" ? "spinner" : "default"}
+									onChange={(_, selectedDate) => {
+										if (Platform.OS !== "ios") setShowDobPicker(false);
+										if (!selectedDate) return;
+										setDobObj(selectedDate);
+										setDob(formatDateYYYYMMDD(selectedDate));
+									}}
+								/>
+								{Platform.OS === "ios" && (
+									<TouchableOpacity
+										style={styles.datePickerDone}
+										onPress={() => setShowDobPicker(false)}
+									>
+										<Text style={styles.datePickerDoneText}>
+											Done
+										</Text>
+									</TouchableOpacity>
+								)}
+								<TouchableOpacity
+									style={styles.datePickerClear}
+									onPress={() => {
+										setDob("");
+										setShowDobPicker(false);
+									}}
+								>
+									<Text style={styles.datePickerClearText}>
+										Clear birthday
+									</Text>
+								</TouchableOpacity>
+							</View>
+						)}
+						<Text style={styles.fieldLabel}>Weight</Text>
+						<View style={styles.weightRow}>
 							<TextInput
-								style={[
-									styles.input,
-									styles.inputHalf,
-									styles.inputHalfFirst,
-								]}
-								value={dob}
-								onChangeText={setDob}
-								placeholder="Birthday"
-								placeholderTextColor={colors.textSecondary}
-							/>
-							<TextInput
-								style={[styles.input, styles.inputHalf]}
+								style={[styles.input, styles.weightInput]}
 								value={weight}
 								onChangeText={setWeight}
-								placeholder="Weight (kg)"
+								placeholder="Weight"
 								placeholderTextColor={colors.textSecondary}
 								keyboardType="decimal-pad"
 							/>
+							<View style={styles.unitToggle}>
+								<TouchableOpacity
+									style={[
+										styles.unitChip,
+										weightUnit === "kg" && styles.unitChipActive,
+									]}
+									onPress={() => setWeightUnit("kg")}
+									activeOpacity={0.85}
+								>
+									<Text
+										style={[
+											styles.unitChipText,
+											weightUnit === "kg" &&
+												styles.unitChipTextActive,
+										]}
+									>
+										kg
+									</Text>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={[
+										styles.unitChip,
+										weightUnit === "lb" && styles.unitChipActive,
+									]}
+									onPress={() => setWeightUnit("lb")}
+									activeOpacity={0.85}
+								>
+									<Text
+										style={[
+											styles.unitChipText,
+											weightUnit === "lb" &&
+												styles.unitChipTextActive,
+										]}
+									>
+										lb
+									</Text>
+								</TouchableOpacity>
+							</View>
 						</View>
 						<TextInput
 							style={[styles.input, styles.noteInput]}
@@ -414,15 +515,98 @@ const styles = StyleSheet.create({
 		color: colors.textPrimary,
 		marginBottom: 8,
 	},
-	inputHalf: { flex: 1, marginBottom: 0 },
-	inputHalfFirst: { marginRight: 8 },
+	dateInput: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	dateInputValueLeft: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: colors.textPrimary,
+	},
+	dateInputChevron: {
+		fontSize: 18,
+		color: colors.textSecondary,
+		marginLeft: 10,
+	},
+	datePickerWrap: {
+		marginTop: 2,
+		marginBottom: 8,
+		borderRadius: 12,
+		overflow: "hidden",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: colors.border,
+		backgroundColor: colors.cardBackground,
+	},
+	datePickerDone: {
+		paddingVertical: 10,
+		alignItems: "center",
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: colors.border,
+	},
+	datePickerDoneText: {
+		color: colors.primaryBlue,
+		fontWeight: "700",
+	},
+	datePickerClear: {
+		paddingVertical: 10,
+		alignItems: "center",
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: colors.border,
+	},
+	datePickerClearText: {
+		color: colors.textSecondary,
+		fontWeight: "600",
+	},
+	fieldLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: colors.textSecondary,
+		marginBottom: 6,
+		marginTop: 6,
+		paddingLeft: 6,
+	},
+	weightRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 8,
+	},
+	weightInput: {
+		flex: 1,
+		marginBottom: 0,
+	},
+	unitToggle: {
+		flexDirection: "row",
+		marginLeft: 8,
+	},
+	unitChip: {
+		minWidth: 52,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderRadius: 999,
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: colors.border,
+		backgroundColor: colors.cardBackground,
+		alignItems: "center",
+		justifyContent: "center",
+		marginLeft: 6,
+	},
+	unitChipActive: {
+		borderColor: colors.primaryBlue,
+		backgroundColor: "#E6F0FF",
+	},
+	unitChipText: {
+		fontSize: 14,
+		color: colors.textSecondary,
+		fontWeight: "700",
+	},
+	unitChipTextActive: {
+		color: colors.primaryBlue,
+	},
 	noteInput: {
 		height: 80,
 		textAlignVertical: "top",
-	},
-	fieldRow: {
-		flexDirection: "row",
-		marginBottom: 8,
 	},
 	chips: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
 	chip: {

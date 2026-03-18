@@ -38,7 +38,8 @@
           "photosPermission": "K9Care uses your photos to add a picture for each dog.",
           "cameraPermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

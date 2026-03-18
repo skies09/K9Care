@@ -64,6 +64,16 @@ function runMigrations(database: SQLite.SQLiteDatabase) {
       FOREIGN KEY(dogId) REFERENCES dogs(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS vaccinations (
+      id TEXT PRIMARY KEY NOT NULL,
+      dogId TEXT NOT NULL,
+      vaccineName TEXT NOT NULL,
+      vaccineDate TEXT NOT NULL,
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(dogId) REFERENCES dogs(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS medication_logs (
       id TEXT PRIMARY KEY NOT NULL,
       medicationId TEXT NOT NULL,

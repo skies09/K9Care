@@ -26,6 +26,7 @@ type HomeStats = {
   weightLogsCount: number;
   recentWeights: number[];
   breathingCount: number;
+  recentBreathing: number[];
   seizureCount: number;
   medsCount: number;
   mobilityCount: number;
@@ -41,6 +42,7 @@ const defaultStats: HomeStats = {
   weightLogsCount: 0,
   recentWeights: [],
   breathingCount: 0,
+  recentBreathing: [],
   seizureCount: 0,
   medsCount: 0,
   mobilityCount: 0,
@@ -96,7 +98,10 @@ function useHomeStats(dogId: string | null) {
           'SELECT weightKg FROM weight_logs WHERE dogId = ? ORDER BY datetime(createdAt) DESC LIMIT 5',
           [dogId]
         ),
-        db.getAllAsync<any>('SELECT id FROM breathing_checks WHERE dogId = ?', [dogId]),
+        db.getAllAsync<any>(
+          'SELECT breathsPerMinute FROM breathing_checks WHERE dogId = ? ORDER BY datetime(createdAt) DESC LIMIT 5',
+          [dogId]
+        ),
         db.getAllAsync<any>('SELECT id FROM seizure_events WHERE dogId = ?', [dogId]),
         db.getAllAsync<any>('SELECT id FROM medications WHERE dogId = ?', [dogId]),
         db.getAllAsync<any>('SELECT id FROM mobility_logs WHERE dogId = ?', [dogId]),
@@ -113,10 +118,14 @@ function useHomeStats(dogId: string | null) {
       );
       const weightLogsCount = weightCountResult?.n ?? 0;
       const recentWeights = (weightRows || []).map((r: any) => r.weightKg).filter(Number.isFinite);
+      const recentBreathing = (breathingRows || [])
+        .map((r: any) => r.breathsPerMinute)
+        .filter(Number.isFinite);
       setStats({
         weightLogsCount,
         recentWeights,
         breathingCount: (breathingRows || []).length,
+        recentBreathing,
         seizureCount: (seizureRows || []).length,
         medsCount: (medRows || []).length,
         mobilityCount: (mobilityRows || []).length,

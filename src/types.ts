@@ -67,6 +67,15 @@ export interface Medication {
   notes?: string | null;
 }
 
+export interface Vaccination {
+  id: string;
+  dogId: string;
+  vaccineName: string;
+  vaccineDate: string; // YYYY-MM-DD
+  notes?: string | null;
+  createdAt: string;
+}
+
 export type MedicationLogStatus = 'given' | 'missed' | 'skipped';
 
 export interface MedicationLog {

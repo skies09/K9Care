@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
 	View,
 	Text,
@@ -8,7 +8,9 @@ import {
 	ScrollView,
 	Alert,
 	Image,
+	Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useDogContext } from "../context/DogContext";
@@ -21,6 +23,13 @@ import { Button as AppButton } from "../components/ui/Button";
 type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
+
+function formatDateYYYYMMDD(date: Date): string {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
+}
 
 const CONDITION_OPTIONS: {
 	id: ConditionTag;
@@ -85,6 +94,8 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 	const [name, setName] = useState("");
 	const [breed, setBreed] = useState("");
 	const [date, setDate] = useState("");
+	const [dobObj, setDobObj] = useState<Date>(new Date());
+	const [showDobPicker, setShowDobPicker] = useState(false);
 	const [weight, setWeight] = useState("");
 	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
 	const [weightUnknown, setWeightUnknown] = useState(false);
@@ -126,6 +137,12 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 			return [...prev, id];
 		});
 	};
+
+	useEffect(() => {
+		if (!date?.trim()) return;
+		const parsed = new Date(`${date}T00:00:00`);
+		if (!Number.isNaN(parsed.getTime())) setDobObj(parsed);
+	}, [date]);
 
 	const handleNext = () => {
 		if (!canGoNext) return;
@@ -247,13 +264,54 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 							When is {name || "your dog"}&apos;s birthday?
 						</Text>
 						<Text style={styles.label}>(optional)</Text>
-						<TextInput
-							style={styles.input}
-							placeholder="DD-MM-YYYY / MM-YYYY"
-							placeholderTextColor="rgba(255,255,255,0.8)"
-							value={date}
-							onChangeText={setDate}
-						/>
+						<TouchableOpacity
+							style={[styles.input, styles.dateInput]}
+							onPress={() => setShowDobPicker(true)}
+							activeOpacity={0.85}
+						>
+							<Text style={styles.dateInputLabel}>Birthday</Text>
+							<Text style={styles.dateInputValue}>
+								{date?.trim() ? date : "Select"}
+							</Text>
+						</TouchableOpacity>
+						{showDobPicker && (
+							<View style={styles.datePickerWrap}>
+								<DateTimePicker
+									value={dobObj}
+									mode="date"
+									display={Platform.OS === "ios" ? "spinner" : "default"}
+									onChange={(_, selectedDate) => {
+										if (Platform.OS !== "ios") {
+											setShowDobPicker(false);
+										}
+										if (!selectedDate) return;
+										setDobObj(selectedDate);
+										setDate(formatDateYYYYMMDD(selectedDate));
+									}}
+								/>
+								{Platform.OS === "ios" && (
+									<TouchableOpacity
+										style={styles.datePickerDone}
+										onPress={() => setShowDobPicker(false)}
+									>
+										<Text style={styles.datePickerDoneText}>
+											Done
+										</Text>
+									</TouchableOpacity>
+								)}
+								<TouchableOpacity
+									style={styles.datePickerClear}
+									onPress={() => {
+										setDate("");
+										setShowDobPicker(false);
+									}}
+								>
+									<Text style={styles.datePickerClearText}>
+										Clear birthday
+									</Text>
+								</TouchableOpacity>
+							</View>
+						)}
 						<Text style={styles.helper}>An estimate is fine.</Text>
 						<AppButton
 							title="Next"
@@ -624,6 +682,50 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(255,255,255,0.1)",
 		color: "#ffffff",
 		marginBottom: spacing.sm,
+	},
+	dateInput: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	dateInputLabel: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: "rgba(255,255,255,0.9)",
+	},
+	dateInputValue: {
+		fontSize: 16,
+		fontWeight: "700",
+		color: "#ffffff",
+	},
+	datePickerWrap: {
+		marginTop: -6,
+		marginBottom: spacing.sm,
+		borderRadius: 12,
+		overflow: "hidden",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: "rgba(255,255,255,0.4)",
+		backgroundColor: "rgba(255,255,255,0.08)",
+	},
+	datePickerDone: {
+		paddingVertical: 10,
+		alignItems: "center",
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "rgba(255,255,255,0.35)",
+	},
+	datePickerDoneText: {
+		color: "#ffffff",
+		fontWeight: "700",
+	},
+	datePickerClear: {
+		paddingVertical: 10,
+		alignItems: "center",
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "rgba(255,255,255,0.35)",
+	},
+	datePickerClearText: {
+		color: "rgba(255,255,255,0.85)",
+		fontWeight: "600",
 	},
 	inputWeight: {
 		flex: 1,

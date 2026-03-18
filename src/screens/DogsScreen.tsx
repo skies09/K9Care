@@ -136,7 +136,7 @@ const DogsScreen: React.FC = () => {
           return (
             <TouchableOpacity
               key={item.id}
-              style={[styles.dogCard, isActive && styles.dogCardActive]}
+              style={styles.dogCard}
               onPress={() => navigation.navigate('EditDog', { dogId: item.id })}
               activeOpacity={0.8}
             >
@@ -177,7 +177,6 @@ const DogsScreen: React.FC = () => {
                     <Text style={styles.dogDetail}>Tracking: {conditionsText}</Text>
                   ) : null}
                 </View>
-                  {isActive && <Text style={styles.currentBadge}>Current</Text>}
                 </View>
               </View>
             </TouchableOpacity>
@@ -237,9 +236,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.sm,
   },
-  dogCardActive: {
-    borderColor: colors.primaryBlue,
-  },
   dogCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -284,12 +280,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 2,
-  },
-  currentBadge: {
-    fontSize: 12,
-    color: colors.primaryBlue,
-    fontWeight: '600',
-    marginTop: spacing.xs,
   },
   emptyText: {
     fontSize: 14,
