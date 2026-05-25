@@ -120,7 +120,7 @@ const TrackScreen: React.FC = () => {
                 title={button}
                 onPress={() => navigation.navigate(screen)}
                 style={styles.cardButton}
-                variant={id === 'heart' || id === 'epilepsy' ? 'primary' : 'secondary'}
+                variant="primary"
               />
             </Card>
           ))}

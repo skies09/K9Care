@@ -8,8 +8,6 @@ import {
   FlatList,
   Alert,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -87,15 +85,18 @@ const WeightScreen: React.FC = () => {
   return (
     <>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-      >
+      <View style={styles.keyboardContainer}>
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: insets.top + 4,
+              paddingBottom: Math.max(insets.bottom, 32),
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           <TouchableOpacity
             style={styles.backButton}
@@ -106,7 +107,8 @@ const WeightScreen: React.FC = () => {
           </TouchableOpacity>
           <Text style={styles.title}>Weight</Text>
           <Text style={styles.subtitle}>
-            Log weight over time to monitor trends. Use alongside your vet&apos;s advice.
+            Log weight over time to monitor trends.{"\n"}Use alongside your
+            vet&apos;s advice.
           </Text>
 
           {logs.length > 0 && (
@@ -171,7 +173,7 @@ const WeightScreen: React.FC = () => {
           }
         />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </>
   );
 };

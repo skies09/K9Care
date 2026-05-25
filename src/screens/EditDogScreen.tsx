@@ -7,7 +7,6 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	Alert,
-	KeyboardAvoidingView,
 	Platform,
 	Image,
 } from "react-native";
@@ -24,6 +23,7 @@ import type { RootStackParamList } from "../navigation/RootNavigator";
 import { colors } from "../theme/colors";
 import { fonts, textStyles } from '../theme/typography';
 import { spacing } from "../theme/spacing";
+import { Button as AppButton } from "../components/ui/Button";
 
 function formatDateYYYYMMDD(date: Date): string {
 	const y = date.getFullYear();
@@ -175,18 +175,18 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 	return (
 		<>
 			<StatusBar style="dark" />
-			<KeyboardAvoidingView
-				style={styles.keyboard}
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
-				keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-			>
+			<View style={styles.keyboard}>
 				<ScrollView
-					style={styles.container}
+					style={styles.scroll}
 					contentContainerStyle={[
 						styles.content,
-						{ paddingTop: insets.top + 4 },
+						{
+							paddingTop: insets.top + 4,
+							paddingBottom: Math.max(insets.bottom, spacing.lg),
+						},
 					]}
 					keyboardShouldPersistTaps="handled"
+					automaticallyAdjustKeyboardInsets
 				>
 					<View style={styles.headerRow}>
 						<TouchableOpacity
@@ -200,16 +200,8 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 								color={colors.textPrimary}
 							/>
 						</TouchableOpacity>
-						<TouchableOpacity
-							style={[
-								styles.saveButtonHeader,
-								name.trim().length === 0 && styles.saveButtonHeaderDisabled,
-							]}
-							onPress={handleSave}
-							disabled={name.trim().length === 0}
-						>
-							<Text style={styles.saveButtonHeaderText}>Save</Text>
-						</TouchableOpacity>
+						<Text style={styles.headerTitle}>Edit dog</Text>
+						<View style={styles.headerSpacer} />
 					</View>
 
 					<View style={styles.card}>
@@ -406,8 +398,16 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 							})}
 						</View>
 					</View>
+					<AppButton
+						title="Save"
+						onPress={handleSave}
+						disabled={name.trim().length === 0}
+						variant="onboarding"
+						size="large"
+						style={styles.saveButton}
+					/>
 				</ScrollView>
-			</KeyboardAvoidingView>
+			</View>
 		</>
 	);
 };
@@ -417,31 +417,33 @@ const PHOTO_SIZE = 88;
 const styles = StyleSheet.create({
 	keyboard: { flex: 1, backgroundColor: colors.background },
 	container: { flex: 1, backgroundColor: colors.background },
+	scroll: { flex: 1, backgroundColor: colors.background },
 	content: {
 		paddingHorizontal: 16,
-		paddingBottom: 32,
 	},
 	headerRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-between",
 		marginBottom: 8,
 	},
 	backButton: {
 		padding: 4,
 	},
-	saveButtonHeader: {
-		paddingVertical: 8,
-		paddingHorizontal: 12,
+	headerTitle: {
+		flex: 1,
+		textAlign: "center",
+		fontFamily: fonts.headingBold,
+		fontSize: 18,
+		fontWeight: "700",
+		color: colors.textPrimary,
 	},
-	saveButtonHeaderDisabled: {
-		opacity: 0.5,
+	headerSpacer: {
+		width: 36,
 	},
-	saveButtonHeaderText: {
-		fontFamily: fonts.bodyMedium,
-		fontSize: 17,
-		fontWeight: "600",
-		color: colors.primary,
+	saveButton: {
+		alignSelf: "stretch",
+		width: "100%",
+		marginTop: spacing.md,
 	},
 	error: { fontSize: 16, color: colors.textSecondary, padding: spacing.lg },
 	card: {

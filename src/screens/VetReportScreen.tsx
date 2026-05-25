@@ -683,9 +683,14 @@ const VetReportScreen: React.FC = () => {
 
 				<Text style={styles.title}>Vet report</Text>
 				<Text style={styles.subtitle}>
-					{currentDog
-						? `Summary for ${currentDog.name}. Download as PDF to share with your vet.`
-						: "Add a dog to generate a report."}
+					{currentDog ? (
+						<>
+							Summary for {currentDog.name}.{"\n"}Download as PDF
+							to share with your vet.
+						</>
+					) : (
+						"Add a dog to generate a report."
+					)}
 				</Text>
 
 				{loading ? (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,10 @@ import {
   FlatList,
   Alert,
   ScrollView,
+  TextInput,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +20,8 @@ import { useDogContext } from '../context/DogContext';
 import { SeizureEvent } from '../types';
 import { colors } from '../theme/colors';
 import { fonts, textStyles } from '../theme/typography';
+import { spacing } from '../theme/spacing';
+import { Button as AppButton } from '../components/ui/Button';
 
 const CLUSTER_WINDOW_HOURS = 24;
 const CLUSTER_THRESHOLD = 3;
@@ -29,34 +34,44 @@ const SeizuresScreen: React.FC = () => {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [seizures, setSeizures] = useState<SeizureEvent[]>([]);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualStart, setManualStart] = useState(new Date());
+  const [showManualStartPicker, setShowManualStartPicker] = useState(false);
+  const [manualDurationMins, setManualDurationMins] = useState('');
+  const [manualDurationSecs, setManualDurationSecs] = useState('');
+  const [manualNotes, setManualNotes] = useState('');
+
+  const loadSeizures = useCallback(async () => {
+    if (!currentDog) {
+      setSeizures([]);
+      return;
+    }
+    const db = getDb();
+    try {
+      const rows = await db.getAllAsync<any>(
+        'SELECT * FROM seizure_events WHERE dogId = ? ORDER BY datetime(startTime) DESC LIMIT 50',
+        [currentDog.id]
+      );
+      const list: SeizureEvent[] = rows.map((row: any) => ({
+        id: row.id,
+        dogId: row.dogId,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        durationSeconds: row.durationSeconds,
+        severity: row.severity,
+        checklist: row.checklistJson ? JSON.parse(row.checklistJson) : undefined,
+        triggers: row.triggers,
+        notes: row.notes,
+      }));
+      setSeizures(list);
+    } catch {
+      // ignore
+    }
+  }, [currentDog]);
 
   useEffect(() => {
-    if (!currentDog) return;
-    const load = async () => {
-      const db = getDb();
-      try {
-        const rows = await db.getAllAsync<any>(
-          'SELECT * FROM seizure_events WHERE dogId = ? ORDER BY datetime(startTime) DESC LIMIT 50',
-          [currentDog.id]
-        );
-        const list: SeizureEvent[] = rows.map((row: any) => ({
-          id: row.id,
-          dogId: row.dogId,
-          startTime: row.startTime,
-          endTime: row.endTime,
-          durationSeconds: row.durationSeconds,
-          severity: row.severity,
-          checklist: row.checklistJson ? JSON.parse(row.checklistJson) : undefined,
-          triggers: row.triggers,
-          notes: row.notes,
-        }));
-        setSeizures(list);
-      } catch {
-        // ignore
-      }
-    };
-    void load();
-  }, [currentDog]);
+    void loadSeizures();
+  }, [loadSeizures]);
 
   useEffect(() => {
     if (!running || !startTime) return;
@@ -67,11 +82,25 @@ const SeizuresScreen: React.FC = () => {
     return () => clearInterval(id);
   }, [running, startTime]);
 
+  const resetManualForm = () => {
+    setManualStart(new Date());
+    setManualDurationMins('');
+    setManualDurationSecs('');
+    setManualNotes('');
+    setShowManualStartPicker(false);
+  };
+
+  const closeManualForm = () => {
+    resetManualForm();
+    setShowManualForm(false);
+  };
+
   const startSeizure = () => {
     if (!currentDog) {
       Alert.alert('Add a dog first', 'You need a dog profile to log seizures.');
       return;
     }
+    if (showManualForm) closeManualForm();
     setStartTime(new Date());
     setElapsed(0);
     setRunning(true);
@@ -105,6 +134,56 @@ const SeizuresScreen: React.FC = () => {
     setElapsed(0);
   };
 
+  const toggleManualForm = () => {
+    if (showManualForm) {
+      closeManualForm();
+      return;
+    }
+    if (running) {
+      Alert.alert(
+        'Timer running',
+        'Stop the seizure timer before logging a manual entry.'
+      );
+      return;
+    }
+    setShowManualForm(true);
+  };
+
+  const saveManualEntry = async () => {
+    if (!currentDog) {
+      Alert.alert('Add a dog first', 'You need a dog profile to log seizures.');
+      return;
+    }
+    const mins = parseInt(manualDurationMins || '0', 10);
+    const secs = parseInt(manualDurationSecs || '0', 10);
+    const durationSeconds = mins * 60 + secs;
+    if (!Number.isFinite(durationSeconds) || durationSeconds < 1) {
+      Alert.alert('Duration required', 'Enter how long the seizure lasted.');
+      return;
+    }
+    const start = manualStart;
+    const end = new Date(start.getTime() + durationSeconds * 1000);
+    const id = `seizure_${Date.now()}`;
+    const db = getDb();
+    try {
+      await db.runAsync(
+        'INSERT INTO seizure_events (id, dogId, startTime, endTime, durationSeconds, notes) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          id,
+          currentDog.id,
+          start.toISOString(),
+          end.toISOString(),
+          durationSeconds,
+          manualNotes.trim() || null,
+        ]
+      );
+      await loadSeizures();
+      closeManualForm();
+    } catch {
+      Alert.alert('Error', 'Could not save seizure event.');
+    }
+  };
+
   const recentSeizuresCount = (() => {
     if (!seizures.length) return 0;
     const now = Date.now();
@@ -127,6 +206,8 @@ const SeizuresScreen: React.FC = () => {
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         <TouchableOpacity
           style={styles.backButton}
@@ -161,6 +242,105 @@ const SeizuresScreen: React.FC = () => {
         >
           <Text style={styles.timerButtonText}>{running ? 'Seizure ended – tap to save' : 'Start seizure timer'}</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.manualToggle}
+          onPress={toggleManualForm}
+          activeOpacity={0.7}
+          disabled={!showManualForm && running}
+        >
+          <Text
+            style={[
+              styles.manualToggleText,
+              !showManualForm && running && styles.manualToggleDisabled,
+            ]}
+          >
+            {showManualForm ? 'Cancel manual entry' : 'Log manual entry'}
+          </Text>
+        </TouchableOpacity>
+
+        {showManualForm && (
+          <View style={styles.manualForm}>
+            <Text style={styles.manualLabel}>When did it start?</Text>
+            <TouchableOpacity
+              style={styles.manualInput}
+              onPress={() => setShowManualStartPicker(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.manualInputText}>
+                {manualStart.toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+            {showManualStartPicker && (
+              <View style={styles.pickerWrap}>
+                <DateTimePicker
+                  value={manualStart}
+                  mode="datetime"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_, selected) => {
+                    if (Platform.OS !== 'ios') setShowManualStartPicker(false);
+                    if (!selected) return;
+                    setManualStart(selected);
+                  }}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.pickerDone}
+                    onPress={() => setShowManualStartPicker(false)}
+                  >
+                    <Text style={styles.pickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            <Text style={styles.manualLabel}>How long did it last?</Text>
+            <View style={styles.durationRow}>
+              <View style={styles.durationField}>
+                <TextInput
+                  style={styles.durationInput}
+                  value={manualDurationMins}
+                  onChangeText={setManualDurationMins}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <Text style={styles.durationUnit}>min</Text>
+              </View>
+              <View style={styles.durationField}>
+                <TextInput
+                  style={styles.durationInput}
+                  value={manualDurationSecs}
+                  onChangeText={setManualDurationSecs}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+                <Text style={styles.durationUnit}>sec</Text>
+              </View>
+            </View>
+
+            <Text style={styles.manualLabel}>Notes (optional)</Text>
+            <TextInput
+              style={[styles.manualInput, styles.notesInput]}
+              value={manualNotes}
+              onChangeText={setManualNotes}
+              placeholder="What happened, triggers, recovery…"
+              placeholderTextColor={colors.textSecondary}
+              multiline
+            />
+
+            <AppButton
+              title="Save manual entry"
+              onPress={saveManualEntry}
+              variant="primary"
+              size="large"
+              style={styles.manualSaveButton}
+            />
+          </View>
+        )}
       </View>
 
       <FlatList
@@ -274,6 +454,108 @@ const styles = StyleSheet.create({
     color: colors.textOnPrimary,
     fontWeight: '700',
     fontSize: 20,
+  },
+  manualToggle: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  manualToggleText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  manualToggleDisabled: {
+    color: colors.textSecondary,
+    textDecorationLine: 'none',
+  },
+  manualForm: {
+    alignSelf: 'stretch',
+    width: '100%',
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  manualLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 6,
+    marginTop: spacing.sm,
+  },
+  manualInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  manualInputText: {
+    fontFamily: fonts.body,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  pickerWrap: {
+    marginTop: spacing.xs,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    backgroundColor: colors.background,
+  },
+  pickerDone: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  pickerDoneText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  durationField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+  },
+  durationInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    paddingVertical: 10,
+    minWidth: 0,
+  },
+  durationUnit: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginLeft: 4,
+  },
+  notesInput: {
+    minHeight: 72,
+    textAlignVertical: 'top',
+  },
+  manualSaveButton: {
+    marginTop: spacing.md,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   list: {
     flex: 1,
