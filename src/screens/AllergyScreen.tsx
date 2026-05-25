@@ -19,6 +19,7 @@ import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { AllergyLog, AllergyTrigger } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 
 const ALL_TRIGGERS: AllergyTrigger[] = ['food', 'pollen', 'fleas', 'environment', 'unknown'];
 
@@ -278,14 +279,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 4,
   },
   subtitle: {
+    ...textStyles.subtitle,
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 16,
   },
   card: {
@@ -330,15 +329,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
   },
   toggleChipActive: {
-    borderColor: colors.primaryBlue,
-    backgroundColor: '#E6F0FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   toggleText: {
     fontSize: 12,
     color: colors.textSecondary,
   },
   toggleTextActive: {
-    color: colors.primaryBlue,
+    color: colors.primary,
     fontWeight: '600',
   },
   sectionLabel: {
@@ -364,25 +363,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
   },
   triggerChipActive: {
-    borderColor: colors.primaryBlue,
-    backgroundColor: '#E6F0FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   triggerText: {
     fontSize: 12,
     color: colors.textSecondary,
   },
   triggerTextActive: {
-    color: colors.primaryBlue,
+    color: colors.primary,
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 999,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
     fontWeight: '600',
   },
   list: {

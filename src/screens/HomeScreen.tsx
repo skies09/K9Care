@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDogContext } from '../context/DogContext';
 import { getDb } from '../db/database';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 import { spacing } from '../theme/spacing';
 import { Card } from '../components/ui/Card';
 import { Button as AppButton } from '../components/ui/Button';
@@ -369,14 +370,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
   },
   subtitle: {
+    ...textStyles.subtitle,
     marginTop: spacing.xs,
-    fontSize: 16,
-    color: colors.textSecondary,
   },
   dogSelectorRow: {
     flexDirection: 'row',
@@ -398,8 +396,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   dogChipActive: {
-    backgroundColor: colors.primaryBlue,
-    borderColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   dogChipText: {
     fontSize: 14,
@@ -407,7 +405,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   dogChipTextActive: {
-    color: '#fff',
+    color: colors.textOnPrimary,
   },
   weightCard: {
     backgroundColor: colors.cardBackground,
@@ -416,7 +414,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.lg,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -443,9 +441,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   weightTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.cardTitle,
   },
   weightSubtitle: {
     fontSize: 14,
@@ -474,7 +470,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     flex: 1,
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
     borderRadius: 4,
     minWidth: 4,
   },
@@ -500,7 +496,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.lg,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -527,9 +523,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   seizureTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.cardTitle,
   },
   seizureSubtitle: {
     fontSize: 14,
@@ -543,9 +537,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.sectionTitle,
     marginBottom: spacing.sm,
   },
   loader: {

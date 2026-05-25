@@ -16,6 +16,7 @@ import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { BreathingCheck } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 import { Button as AppButton } from '../components/ui/Button';
 
 const BREATH_COUNT_WINDOW_SECONDS = 30;
@@ -230,9 +231,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 4,
   },
   disclaimer: {
@@ -276,15 +275,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
   circleActive: {
-    borderColor: colors.primaryBlue,
-    backgroundColor: '#E6F0FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   circleText: {
     fontWeight: '700',

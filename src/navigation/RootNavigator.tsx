@@ -53,12 +53,12 @@ const navTheme: Theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: colors.primaryBlue,
+    primary: colors.primary,
     background: colors.background,
     card: colors.cardBackground,
     text: colors.textPrimary,
     border: colors.border,
-    notification: colors.primaryBlue,
+    notification: colors.accent,
   },
 };
 
@@ -68,10 +68,11 @@ function Tabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: colors.primaryBlue,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           backgroundColor: colors.cardBackground,
+          borderTopColor: colors.border,
         },
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
@@ -99,7 +100,7 @@ export default function RootNavigator() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.primaryBlue} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

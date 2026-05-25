@@ -19,6 +19,7 @@ import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { KidneyLog } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 
 const KidneyScreen: React.FC = () => {
   const { currentDog } = useDogContext();
@@ -220,14 +221,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 4,
   },
   subtitle: {
+    ...textStyles.subtitle,
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 16,
   },
   card: {
@@ -259,13 +258,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   primaryButton: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 999,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
     fontWeight: '600',
   },
   list: {

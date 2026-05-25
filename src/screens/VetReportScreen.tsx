@@ -17,6 +17,7 @@ import * as Sharing from "expo-sharing";
 import { useDogContext } from "../context/DogContext";
 import { getDb } from "../db/database";
 import { colors } from "../theme/colors";
+import { fonts, textStyles } from '../theme/typography';
 import { Button as AppButton } from "../components/ui/Button";
 
 type ReportData = {
@@ -1073,14 +1074,12 @@ const styles = StyleSheet.create({
 		marginBottom: 4,
 	},
 	title: {
-		fontSize: 24,
-		fontWeight: "700",
-		color: colors.textPrimary,
+		...textStyles.screenTitle,
 		marginBottom: 4,
 	},
 	subtitle: {
+		...textStyles.subtitle,
 		fontSize: 14,
-		color: colors.textSecondary,
 		marginBottom: 20,
 	},
 	loader: {
@@ -1098,9 +1097,10 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	blockTitle: {
+		...textStyles.label,
+		fontFamily: fonts.headingSemi,
 		fontSize: 16,
-		fontWeight: "700",
-		color: colors.textPrimary,
+		fontWeight: "600",
 		marginBottom: 4,
 	},
 	blockCount: {
@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
 	},
 	blockDownloadText: {
 		fontSize: 12,
-		color: colors.primaryBlue,
+		color: colors.primary,
 		fontWeight: "600",
 	},
 	emptyText: {

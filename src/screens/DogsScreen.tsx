@@ -21,6 +21,7 @@ import { spacing } from '../theme/spacing';
 import { Card } from '../components/ui/Card';
 import { Button as AppButton } from '../components/ui/Button';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 
 const CONDITION_LABELS: Record<ConditionTag, string> = {
   heart: 'Heart',
@@ -44,6 +45,14 @@ function parseDob(dob: string): Date | null {
     const d = parseInt(iso[3], 10);
     const date = new Date(y, m, d);
     return date.getFullYear() === y && date.getMonth() === m && date.getDate() === d ? date : null;
+  }
+  // ISO partial (YYYY-MM) — day unknown
+  const isoYm = /^(\d{4})-(\d{2})$/.exec(s);
+  if (isoYm) {
+    const y = parseInt(isoYm[1], 10);
+    const m = parseInt(isoYm[2], 10) - 1;
+    if (m < 0 || m > 11) return null;
+    return new Date(y, m, 1);
   }
   // DD-MM-YYYY or D-M-YYYY (or 2-digit year DD-MM-YY)
   const dmy = /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/.exec(s);
@@ -223,9 +232,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 16,
   },
   dogCard: {
@@ -266,9 +273,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   dogName: {
+    ...textStyles.cardTitle,
     fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
   },
   removeButton: {
     padding: 4,

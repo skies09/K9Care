@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { useDogContext } from '../context/DogContext';
 import type { ConditionTag } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 import { spacing } from '../theme/spacing';
 import { Card } from '../components/ui/Card';
 import { Button as AppButton } from '../components/ui/Button';
@@ -165,8 +166,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   dogChipActive: {
-    backgroundColor: colors.primaryBlue,
-    borderColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   dogChipText: {
     fontSize: 14,
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   dogChipTextActive: {
-    color: '#fff',
+    color: colors.textOnPrimary,
   },
   emptyText: {
     fontSize: 15,
@@ -182,23 +183,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
   },
   subtitle: {
+    ...textStyles.subtitle,
     marginTop: spacing.xs,
-    fontSize: 16,
-    color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
   cards: {
     flexDirection: 'column',
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...textStyles.cardTitle,
     marginBottom: 4,
   },
   cardText: {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
 	View,
 	Text,
@@ -8,27 +8,30 @@ import {
 	ScrollView,
 	Alert,
 	Image,
-	Platform,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { PartialDobPicker } from "../components/PartialDobPicker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useDogContext } from "../context/DogContext";
 import type { ConditionTag } from "../types";
 import type { RootStackParamList } from "../navigation/RootNavigator";
 import { colors } from "../theme/colors";
+import { fonts, textStyles } from "../theme/typography";
 import { spacing } from "../theme/spacing";
 import { Button as AppButton } from "../components/ui/Button";
+import {
+	buildDobString,
+	formatDobDisplay,
+	parseDobParts,
+	type DobParts,
+} from "../utils/dobFormat";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
-function formatDateYYYYMMDD(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	const d = String(date.getDate()).padStart(2, "0");
-	return `${y}-${m}-${d}`;
+function defaultDobParts(): DobParts {
+	return { year: new Date().getFullYear() - 2, month: 0, day: 0 };
 }
 
 const CONDITION_OPTIONS: {
@@ -94,11 +97,9 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 	const [name, setName] = useState("");
 	const [breed, setBreed] = useState("");
 	const [date, setDate] = useState("");
-	const [dobObj, setDobObj] = useState<Date>(new Date());
-	const [showDobPicker, setShowDobPicker] = useState(false);
+	const [dobParts, setDobParts] = useState<DobParts>(defaultDobParts);
 	const [weight, setWeight] = useState("");
 	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
-	const [weightUnknown, setWeightUnknown] = useState(false);
 	const [selectedConditions, setSelectedConditions] = useState<
 		ConditionTag[]
 	>([]);
@@ -112,7 +113,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 			case 2:
 				return true; // date optional
 			case 3:
-				return weightUnknown || weight.trim().length > 0;
+				return weight.trim().length > 0;
 			case 4:
 				return selectedConditions.length > 0;
 			case 5:
@@ -120,7 +121,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 			default:
 				return false;
 		}
-	}, [step, name, weightUnknown, weight, selectedConditions.length]);
+	}, [step, name, weight, selectedConditions.length]);
 
 	const toggleCondition = (id: ConditionTag) => {
 		setSelectedConditions((prev) => {
@@ -138,11 +139,10 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 		});
 	};
 
-	useEffect(() => {
-		if (!date?.trim()) return;
-		const parsed = new Date(`${date}T00:00:00`);
-		if (!Number.isNaN(parsed.getTime())) setDobObj(parsed);
-	}, [date]);
+	const handleDobChange = (parts: DobParts) => {
+		setDobParts(parts);
+		setDate(buildDobString(parts));
+	};
 
 	const handleNext = () => {
 		if (!canGoNext) return;
@@ -160,12 +160,11 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
 	const handleFinish = async () => {
 		try {
-			const parsedWeightKg =
-				weightUnknown || !weight.trim()
-					? null
-					: weightUnit === "kg"
-						? Number(weight)
-						: Number(weight) * 0.453592;
+			const parsedWeightKg = !weight.trim()
+				? null
+				: weightUnit === "kg"
+					? Number(weight)
+					: Number(weight) * 0.453592;
 
 			await addDog({
 				name,
@@ -204,12 +203,14 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 						<Text style={styles.tagline}>
 							Let&apos;s set up your dog&apos;s health space.
 						</Text>
-						<View style={styles.fieldGroup}>
-							<Text style={styles.label}>Dog&apos;s name</Text>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								What is your dog&apos;s name?
+							</Text>
 							<TextInput
-								style={styles.input}
+								style={styles.inputOnLight}
 								placeholder="e.g. Bella"
-								placeholderTextColor="rgba(255,255,255,0.8)"
+								placeholderTextColor="rgba(31, 111, 120, 0.45)"
 								value={name}
 								onChangeText={setName}
 								accessibilityLabel="Dog's name"
@@ -219,320 +220,398 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 								title="Next"
 								onPress={handleNext}
 								disabled={!canGoNext}
-								variant="secondary"
-								style={[
-									styles.primaryBelowFieldButton,
-									styles.onboardingButton,
-								]}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
 							/>
 						</View>
 					</View>
 				);
 			case 1:
 				return (
-					<View style={styles.breedContent}>
-						<Text style={[styles.title, styles.breedTitle]}>
-							What&apos;s {name || "your dog"}&apos;s breed?
-						</Text>
-						<Text style={styles.body}>
-							This helps vets understand their risk factors.
-						</Text>
-						<Text style={styles.label}>Breed (optional)</Text>
-						<TextInput
-							style={styles.input}
-							placeholder="e.g. Labrador, Mixed"
-							placeholderTextColor="rgba(255,255,255,0.8)"
-							value={breed}
-							onChangeText={setBreed}
-						/>
-						<Text style={styles.helper}>
-							You can leave this blank if you&apos;re not sure.
-						</Text>
-						<AppButton
-							title="Next"
-							onPress={handleNext}
-							disabled={!canGoNext}
-							variant="secondary"
-							style={styles.primaryBelowFieldButton}
-						/>
+					<View style={styles.centerContent}>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								What&apos;s {name || "your dog"}&apos;s breed?
+							</Text>
+							<View style={styles.helperBlock}>
+								<Text style={styles.helperOnLight}>
+									This helps vets understand their risk
+									factors. Optional — leave blank if
+									you&apos;re not sure.
+								</Text>
+							</View>
+							<TextInput
+								style={styles.inputOnLight}
+								placeholder="e.g. Labrador, Mixed"
+								placeholderTextColor="rgba(31, 111, 120, 0.45)"
+								value={breed}
+								onChangeText={setBreed}
+							/>
+							<AppButton
+								title="Next"
+								onPress={handleNext}
+								disabled={!canGoNext}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
+							/>
+						</View>
 					</View>
 				);
 			case 2:
 				return (
-					<View style={styles.breedContent}>
-						<Text style={styles.title}>
-							When is {name || "your dog"}&apos;s birthday?
-						</Text>
-						<Text style={styles.label}>(optional)</Text>
-						<TouchableOpacity
-							style={[styles.input, styles.dateInput]}
-							onPress={() => setShowDobPicker(true)}
-							activeOpacity={0.85}
-						>
-							<Text style={styles.dateInputLabel}>Birthday</Text>
-							<Text style={styles.dateInputValue}>
-								{date?.trim() ? date : "Select"}
+					<View style={styles.centerContent}>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								When is {name || "your dog"}&apos;s birthday?
 							</Text>
-						</TouchableOpacity>
-						{showDobPicker && (
-							<View style={styles.datePickerWrap}>
-								<DateTimePicker
-									value={dobObj}
-									mode="date"
-									display={Platform.OS === "ios" ? "spinner" : "default"}
-									onChange={(_, selectedDate) => {
-										if (Platform.OS !== "ios") {
-											setShowDobPicker(false);
-										}
-										if (!selectedDate) return;
-										setDobObj(selectedDate);
-										setDate(formatDateYYYYMMDD(selectedDate));
-									}}
-								/>
-								{Platform.OS === "ios" && (
-									<TouchableOpacity
-										style={styles.datePickerDone}
-										onPress={() => setShowDobPicker(false)}
-									>
-										<Text style={styles.datePickerDoneText}>
-											Done
-										</Text>
-									</TouchableOpacity>
-								)}
-								<TouchableOpacity
-									style={styles.datePickerClear}
-									onPress={() => {
-										setDate("");
-										setShowDobPicker(false);
-									}}
-								>
-									<Text style={styles.datePickerClearText}>
-										Clear birthday
-									</Text>
-								</TouchableOpacity>
+							<View style={styles.helperBlock}>
+								<Text style={styles.helperOnLight}>
+									Tap Year, Month, or Day to change each part.
+									Optional — year only is fine.
+								</Text>
 							</View>
-						)}
-						<Text style={styles.helper}>An estimate is fine.</Text>
-						<AppButton
-							title="Next"
-							onPress={handleNext}
-							disabled={!canGoNext}
-							variant="secondary"
-							style={styles.primaryBelowFieldButton}
-						/>
+							<View style={styles.datePickerWrapOnLight}>
+								<PartialDobPicker
+									parts={dobParts}
+									onChange={handleDobChange}
+								/>
+							</View>
+							<TouchableOpacity
+								style={styles.linkSkipOnLight}
+								onPress={() => {
+									setDate("");
+									setDobParts(defaultDobParts());
+									setStep((prev) => (prev + 1) as Step);
+								}}
+								accessibilityRole="button"
+								accessibilityLabel="Skip birthday and continue"
+							>
+								<Text style={styles.linkSkipTextOnLight}>
+									I don&apos;t know their birthday
+								</Text>
+							</TouchableOpacity>
+							<AppButton
+								title="Next"
+								onPress={handleNext}
+								disabled={!canGoNext}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
+							/>
+						</View>
 					</View>
 				);
 			case 3:
 				return (
-					<View style={styles.breedContent}>
-						<Text style={styles.title}>
-							What does {name || "your dog"} weigh?
-						</Text>
-						<Text style={styles.body}>
-							An estimate is okay. You can update this anytime.
-						</Text>
-						<View style={styles.row}>
-							<TextInput
-								style={[styles.input, styles.inputWeight]}
-								placeholder="e.g. 12.5"
-								placeholderTextColor="rgba(255,255,255,0.8)"
-								value={weight}
-								onChangeText={(text) => {
-									setWeight(text);
-									setWeightUnknown(false);
-								}}
-								keyboardType="decimal-pad"
-								editable={!weightUnknown}
-							/>
-							<View style={styles.unitToggle}>
-								<TouchableOpacity
-									style={[
-										styles.chipSmall,
-										weightUnit === "kg" &&
-											styles.chipActive,
-									]}
-									onPress={() => setWeightUnit("kg")}
-								>
-									<Text
-										style={[
-											styles.chipText,
-											weightUnit === "kg" &&
-												styles.chipTextActive,
-										]}
-									>
-										kg
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity
-									style={[
-										styles.chipSmall,
-										weightUnit === "lb" &&
-											styles.chipActive,
-									]}
-									onPress={() => setWeightUnit("lb")}
-								>
-									<Text
-										style={[
-											styles.chipText,
-											weightUnit === "lb" &&
-												styles.chipTextActive,
-										]}
-									>
-										lb
-									</Text>
-								</TouchableOpacity>
-							</View>
-						</View>
-						<TouchableOpacity
-							style={styles.linkButton}
-							onPress={() => {
-								setWeight("");
-								setWeightUnknown(true);
-							}}
-						>
-							<Text style={styles.linkText}>
-								I&apos;m not sure yet
+					<View style={styles.centerContent}>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								What does {name || "your dog"} weigh?
 							</Text>
-						</TouchableOpacity>
-						<AppButton
-							title="Next"
-							onPress={handleNext}
-							disabled={!canGoNext}
-							variant="secondary"
-							style={styles.primaryBelowFieldButton}
-						/>
+							<View style={styles.helperBlock}>
+								<Text style={styles.helperOnLight}>
+									You can update this anytime.{"\n"}Optional —
+									an estimate is fine.
+								</Text>
+							</View>
+							<View style={styles.weightRow}>
+								<TextInput
+									style={[
+										styles.inputOnLight,
+										styles.inputWeightOnLight,
+									]}
+									placeholder="e.g. 12.5"
+									placeholderTextColor="rgba(31, 111, 120, 0.45)"
+									value={weight}
+									onChangeText={setWeight}
+									keyboardType="decimal-pad"
+									autoFocus
+								/>
+								<View style={styles.unitToggle}>
+									<TouchableOpacity
+										style={[
+											styles.chipOnLight,
+											weightUnit === "kg" &&
+												styles.chipOnLightActive,
+										]}
+										onPress={() => setWeightUnit("kg")}
+									>
+										<Text
+											style={[
+												styles.chipOnLightText,
+												weightUnit === "kg" &&
+													styles.chipOnLightTextActive,
+											]}
+										>
+											kg
+										</Text>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={[
+											styles.chipOnLight,
+											weightUnit === "lb" &&
+												styles.chipOnLightActive,
+										]}
+										onPress={() => setWeightUnit("lb")}
+									>
+										<Text
+											style={[
+												styles.chipOnLightText,
+												weightUnit === "lb" &&
+													styles.chipOnLightTextActive,
+											]}
+										>
+											lb
+										</Text>
+									</TouchableOpacity>
+								</View>
+							</View>
+							<TouchableOpacity
+								style={styles.linkSkipOnLight}
+								onPress={() => {
+									setWeight("");
+									setStep((prev) => (prev + 1) as Step);
+								}}
+								accessibilityRole="button"
+								accessibilityLabel="Skip weight, not sure yet"
+							>
+								<Text style={styles.linkSkipTextOnLight}>
+									I&apos;m not sure yet
+								</Text>
+							</TouchableOpacity>
+							<AppButton
+								title="Next"
+								onPress={handleNext}
+								disabled={!canGoNext}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
+							/>
+						</View>
 					</View>
 				);
 			case 4:
 				return (
-					<View style={styles.breedContent}>
-						<Text style={styles.title}>
-							What do you want to keep an eye on?
-						</Text>
-						<Text style={styles.body}>
-							Choose up to 3 to start. You can change these later.
-						</Text>
-						<Text style={styles.helper}>
-							{selectedConditions.length} of 3 selected
-						</Text>
-						<View style={styles.conditionsList}>
-							{CONDITION_OPTIONS.map((option) => {
-								const active = selectedConditions.includes(
-									option.id,
-								);
-								return (
-									<TouchableOpacity
-										key={option.id}
-										style={[
-											styles.conditionCard,
-											active && styles.conditionCardSelected,
-										]}
-										onPress={() =>
-											toggleCondition(option.id)
-										}
-										activeOpacity={0.8}
-									>
-										<Ionicons
-											name={option.icon}
-											size={28}
-											color={active ? "#FFFFFF" : "rgba(255,255,255,0.85)"}
-											style={styles.conditionCardIcon}
-										/>
-										<View style={styles.conditionCardContent}>
-											<Text
+					<View style={styles.centerContent}>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								What conditions do you want to keep an eye on?
+							</Text>
+							<View style={styles.helperBlock}>
+								<Text style={styles.helperOnLight}>
+									Choose up to 3 to start.{"\n"}You can change
+									these later.
+								</Text>
+								<Text style={styles.helperOnLight}>
+									{selectedConditions.length} of 3 selected
+								</Text>
+							</View>
+							<View style={styles.conditionsList}>
+								{CONDITION_OPTIONS.map((option) => {
+									const active = selectedConditions.includes(
+										option.id,
+									);
+									return (
+										<TouchableOpacity
+											key={option.id}
+											style={[
+												styles.conditionCard,
+												active &&
+													styles.conditionCardSelected,
+											]}
+											onPress={() =>
+												toggleCondition(option.id)
+											}
+											activeOpacity={0.8}
+										>
+											<Ionicons
+												name={option.icon}
+												size={28}
+												color={
+													active
+														? colors.textOnPrimary
+														: colors.primary
+												}
+												style={styles.conditionCardIcon}
+											/>
+											<View
+												style={
+													styles.conditionCardContent
+												}
+											>
+												<Text
+													style={[
+														styles.conditionCardTitle,
+														active &&
+															styles.conditionCardTitleSelected,
+													]}
+												>
+													{option.label}
+												</Text>
+												<Text
+													style={[
+														styles.conditionCardDescription,
+														active &&
+															styles.conditionCardDescriptionSelected,
+													]}
+												>
+													{option.description}
+												</Text>
+											</View>
+											<View
 												style={[
-													styles.conditionCardTitle,
-													active && styles.conditionCardTitleSelected,
+													styles.conditionCardCircle,
+													active &&
+														styles.conditionCardCircleSelected,
 												]}
 											>
-												{option.label}
-											</Text>
-											<Text style={styles.conditionCardDescription}>
-												{option.description}
-											</Text>
-										</View>
-										<View
-											style={[
-												styles.conditionCardCircle,
-												active && styles.conditionCardCircleSelected,
-											]}
-										>
-											{active && (
-												<Ionicons
-													name="checkmark"
-													size={16}
-													color={colors.primaryBlue}
-												/>
-											)}
-										</View>
-									</TouchableOpacity>
-								);
-							})}
+												{active && (
+													<MaterialCommunityIcons
+														name="check-bold"
+														size={20}
+														color={colors.primary}
+													/>
+												)}
+											</View>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+							<AppButton
+								title="Next"
+								onPress={handleNext}
+								disabled={!canGoNext}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
+							/>
 						</View>
-						<AppButton
-							title="Next"
-							onPress={handleNext}
-							disabled={!canGoNext}
-							variant="secondary"
-							style={styles.primaryBelowFieldButton}
-						/>
 					</View>
 				);
 			case 5:
-			default:
+			default: {
+				const trackingLabels = selectedConditions
+					.map(
+						(id) =>
+							CONDITION_OPTIONS.find((o) => o.id === id)?.label ??
+							id,
+					)
+					.join(", ");
+				const summaryItems = [
+					{
+						label: "Name",
+						value: name,
+						complete: name.trim().length > 0,
+						emptyText: "Not set",
+					},
+					{
+						label: "Breed",
+						value: breed.trim(),
+						complete: breed.trim().length > 0,
+						emptyText: "Skipped",
+					},
+					{
+						label: "Birthday",
+						value: date.trim() ? formatDobDisplay(date) : "",
+						complete: date.trim().length > 0,
+						emptyText: "Skipped",
+					},
+					{
+						label: "Weight",
+						value: weight.trim()
+							? `${weight} ${weightUnit}`
+							: "",
+						complete: weight.trim().length > 0,
+						emptyText: "Not set",
+					},
+					{
+						label: "Tracking",
+						value: trackingLabels,
+						complete: selectedConditions.length > 0,
+						emptyText: "None yet",
+					},
+				];
+
 				return (
-					<View style={styles.breedContent}>
-						<Text style={styles.title}>
-							All set for {name || "your dog"}
-						</Text>
-						<View style={styles.summaryCard}>
-							<Text style={styles.summaryLine}>Name: {name}</Text>
-							{!!breed && (
-								<Text style={styles.summaryLine}>
-									Breed: {breed}
+					<View style={styles.centerContent}>
+						<View style={[styles.fieldGroup, styles.nameStepCard]}>
+							<Text style={styles.nameQuestion}>
+								All set for {name || "your dog"}
+							</Text>
+							<View style={styles.summaryCard}>
+								{summaryItems.map((item, index) => (
+									<View
+										key={item.label}
+										style={[
+											styles.summaryRow,
+											item.complete &&
+												styles.summaryRowComplete,
+											index === summaryItems.length - 1 &&
+												styles.summaryRowLast,
+										]}
+									>
+										<View
+											style={[
+												styles.summaryCheck,
+												item.complete &&
+													styles.summaryCheckComplete,
+											]}
+										>
+											{item.complete && (
+												<MaterialCommunityIcons
+													name="check-bold"
+													size={16}
+													color={colors.textOnPrimary}
+												/>
+											)}
+										</View>
+										<View style={styles.summaryRowContent}>
+											<Text
+												style={[
+													styles.summaryLabel,
+													!item.complete &&
+														styles.summaryLabelMuted,
+												]}
+											>
+												{item.label}
+											</Text>
+											<Text
+												style={[
+													styles.summaryValue,
+													item.complete &&
+														styles.summaryValueComplete,
+													!item.complete &&
+														styles.summaryValueMuted,
+												]}
+											>
+												{item.complete
+													? item.value
+													: item.emptyText}
+											</Text>
+										</View>
+									</View>
+								))}
+							</View>
+							<View style={styles.helperBlock}>
+								<Text style={styles.helperOnLight}>
+									You can edit these details later from the
+									Dogs screen.
 								</Text>
-							)}
-							{!!date && (
-								<Text style={styles.summaryLine}>Birthday: {date}</Text>
-							)}
-							<Text style={styles.summaryLine}>
-								Weight:{" "}
-								{weightUnknown || !weight
-									? "Not set"
-									: `${weight} ${weightUnit}`}
-							</Text>
-							<Text
-								style={[
-									styles.summaryLine,
-									styles.summaryLineLast,
-								]}
-							>
-								Tracking:{" "}
-								{selectedConditions.length
-									? selectedConditions
-											.map(
-												(id) =>
-													CONDITION_OPTIONS.find(
-														(o) => o.id === id,
-													)?.label ?? id,
-											)
-											.join(", ")
-									: "None yet"}
-							</Text>
+							</View>
+							<AppButton
+								title="Get started"
+								onPress={handleNext}
+								disabled={!canGoNext}
+								variant="onboarding"
+								size="large"
+								style={styles.primaryBelowFieldButton}
+							/>
 						</View>
-						<Text style={styles.body}>
-							You can edit these details later from the Dogs
-							screen.
-						</Text>
-						<AppButton
-							title="Get started"
-							onPress={handleNext}
-							disabled={!canGoNext}
-							variant="secondary"
-							style={styles.primaryBelowFieldButton}
-						/>
 					</View>
 				);
+			}
 		}
 	};
 
@@ -586,11 +665,11 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
 	keyboardContainer: {
 		flex: 1,
-		backgroundColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
 	},
 	container: {
 		flex: 1,
-		backgroundColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
 	},
 	content: {
 		flexGrow: 1,
@@ -606,9 +685,7 @@ const styles = StyleSheet.create({
 		marginBottom: spacing.sm,
 	},
 	brand: {
-		fontSize: 22,
-		fontWeight: "700",
-		color: "#ffffff",
+		...textStyles.brand,
 		marginBottom: 4,
 	},
 	stepIndicator: {
@@ -643,9 +720,10 @@ const styles = StyleSheet.create({
 		marginBottom: spacing.md,
 	},
 	tagline: {
+		fontFamily: fonts.headingSemi,
 		fontSize: 20,
 		fontWeight: "600",
-		color: "#ffffff",
+		color: colors.textOnPrimary,
 		textAlign: "center",
 		marginBottom: spacing.lg,
 	},
@@ -654,24 +732,78 @@ const styles = StyleSheet.create({
 		marginTop: spacing.sm,
 	},
 	title: {
+		fontFamily: fonts.headingBold,
 		fontSize: 26,
 		fontWeight: "700",
-		color: "#ffffff",
+		color: colors.textOnPrimary,
 		marginBottom: spacing.sm,
 	},
-	breedTitle: {
-		marginTop: spacing.lg,
-	},
 	body: {
+		fontFamily: fonts.body,
 		fontSize: 18,
 		color: "rgba(255,255,255,0.9)",
 		marginBottom: spacing.md,
 	},
 	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#ffffff",
+		...textStyles.label,
+		color: colors.textOnPrimary,
 		marginBottom: 4,
+	},
+	nameStepCard: {
+		alignSelf: "stretch",
+		backgroundColor: colors.primaryHover,
+		borderRadius: 16,
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.5)",
+		padding: spacing.md,
+		marginTop: spacing.xs,
+	},
+	nameQuestion: {
+		fontFamily: fonts.headingBold,
+		fontSize: 24,
+		fontWeight: "700",
+		lineHeight: 30,
+		color: colors.primary,
+		marginBottom: spacing.sm,
+	},
+	helperBlock: {
+		marginBottom: spacing.sm,
+		gap: 2,
+	},
+	helperOnLight: {
+		fontFamily: fonts.body,
+		fontSize: 15,
+		lineHeight: 20,
+		color: "rgba(31, 111, 120, 0.75)",
+	},
+	inputOnLight: {
+		height: 52,
+		borderRadius: 12,
+		borderWidth: 1.5,
+		borderColor: colors.primary,
+		paddingHorizontal: 14,
+		backgroundColor: colors.cardBackground,
+		color: colors.primary,
+		fontFamily: fonts.body,
+		fontSize: 17,
+		marginBottom: spacing.sm,
+	},
+	inputFilled: {
+		height: 52,
+		borderRadius: 12,
+		borderWidth: 2,
+		borderColor: colors.cardBackground,
+		paddingHorizontal: 14,
+		backgroundColor: colors.cardBackground,
+		color: colors.primary,
+		fontFamily: fonts.body,
+		fontSize: 17,
+		marginBottom: spacing.sm,
+		shadowColor: colors.shadow,
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.08,
+		shadowRadius: 4,
+		elevation: 2,
 	},
 	input: {
 		height: 48,
@@ -691,45 +823,70 @@ const styles = StyleSheet.create({
 	dateInputLabel: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "rgba(255,255,255,0.9)",
+		color: "rgba(31, 111, 120, 0.65)",
 	},
 	dateInputValue: {
 		fontSize: 16,
 		fontWeight: "700",
-		color: "#ffffff",
+		color: colors.primary,
 	},
-	datePickerWrap: {
-		marginTop: -6,
+	datePickerWrapOnLight: {
 		marginBottom: spacing.sm,
 		borderRadius: 12,
-		overflow: "hidden",
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "rgba(255,255,255,0.4)",
-		backgroundColor: "rgba(255,255,255,0.08)",
+		borderWidth: 1.5,
+		borderColor: colors.primary,
+		backgroundColor: colors.cardBackground,
 	},
-	datePickerDone: {
-		paddingVertical: 10,
-		alignItems: "center",
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(255,255,255,0.35)",
+	linkSkipOnLight: {
+		alignSelf: "center",
+		marginTop: spacing.xs,
+		marginBottom: spacing.sm,
+		paddingVertical: spacing.xs,
+		paddingHorizontal: spacing.sm,
 	},
-	datePickerDoneText: {
-		color: "#ffffff",
-		fontWeight: "700",
-	},
-	datePickerClear: {
-		paddingVertical: 10,
-		alignItems: "center",
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(255,255,255,0.35)",
-	},
-	datePickerClearText: {
-		color: "rgba(255,255,255,0.85)",
+	linkSkipTextOnLight: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 16,
 		fontWeight: "600",
+		color: colors.primary,
+		textDecorationLine: "underline",
 	},
-	inputWeight: {
+	weightRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		alignSelf: "stretch",
+		marginBottom: spacing.sm,
+	},
+	inputWeightOnLight: {
 		flex: 1,
+		minWidth: 0,
 		marginRight: spacing.sm,
+		marginBottom: 0,
+	},
+	chipOnLight: {
+		minWidth: 64,
+		paddingHorizontal: spacing.sm,
+		paddingVertical: spacing.sm + 2,
+		borderRadius: 999,
+		borderWidth: 1.5,
+		borderColor: colors.primary,
+		backgroundColor: colors.cardBackground,
+		marginRight: 4,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	chipOnLightActive: {
+		backgroundColor: colors.primary,
+		borderColor: colors.primary,
+	},
+	chipOnLightText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 15,
+		fontWeight: "600",
+		color: colors.primary,
+	},
+	chipOnLightTextActive: {
+		color: colors.textOnPrimary,
 	},
 	helper: {
 		fontSize: 15,
@@ -795,22 +952,22 @@ const styles = StyleSheet.create({
 		color: "#ffffff",
 	},
 	conditionsList: {
-		marginTop: spacing.sm,
+		marginBottom: spacing.xs,
 	},
 	conditionCard: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "rgba(255,255,255,0.06)",
-		borderRadius: 14,
-		borderWidth: 2,
-		borderColor: "rgba(255,255,255,0.35)",
+		backgroundColor: colors.cardBackground,
+		borderRadius: 12,
+		borderWidth: 1.5,
+		borderColor: colors.primary,
 		paddingVertical: spacing.md,
 		paddingHorizontal: spacing.md,
 		marginBottom: spacing.sm,
 	},
 	conditionCardSelected: {
-		borderColor: "#FFFFFF",
-		backgroundColor: "rgba(255,255,255,0.18)",
+		borderColor: colors.primary,
+		backgroundColor: colors.primary,
 	},
 	conditionCardIcon: {
 		marginRight: spacing.sm,
@@ -820,49 +977,104 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	conditionCardTitle: {
-		fontSize: 18,
+		fontFamily: fonts.headingBold,
+		fontSize: 17,
 		fontWeight: "700",
-		color: "#ffffff",
+		color: colors.primary,
 		marginBottom: 4,
 	},
 	conditionCardTitleSelected: {
-		color: "#ffffff",
+		color: colors.textOnPrimary,
 	},
 	conditionCardDescription: {
+		fontFamily: fonts.body,
 		fontSize: 13,
-		color: "rgba(255,255,255,0.85)",
+		color: "rgba(31, 111, 120, 0.75)",
 		lineHeight: 18,
+	},
+	conditionCardDescriptionSelected: {
+		color: "rgba(255, 255, 255, 0.9)",
 	},
 	conditionCardCircle: {
 		width: 28,
 		height: 28,
 		borderRadius: 14,
 		borderWidth: 2,
-		borderColor: "rgba(255,255,255,0.6)",
+		borderColor: colors.primary,
 		alignItems: "center",
 		justifyContent: "center",
 		marginLeft: spacing.sm,
 	},
 	conditionCardCircleSelected: {
-		backgroundColor: "#FFFFFF",
-		borderColor: "#FFFFFF",
+		backgroundColor: colors.textOnPrimary,
+		borderColor: colors.textOnPrimary,
 	},
 	summaryCard: {
-		backgroundColor: "rgba(255,255,255,0.1)",
+		backgroundColor: colors.cardBackground,
 		borderRadius: 12,
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "rgba(255,255,255,0.4)",
-		padding: spacing.md,
-		marginTop: spacing.sm,
-		marginBottom: spacing.md,
+		borderWidth: 1.5,
+		borderColor: colors.primary,
+		padding: spacing.sm,
+		marginBottom: spacing.sm,
+		gap: spacing.xs,
 	},
-	summaryLine: {
-		fontSize: 16,
-		color: "#ffffff",
-		marginBottom: 4,
+	summaryRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		borderRadius: 10,
+		paddingVertical: spacing.sm,
+		paddingHorizontal: spacing.sm,
 	},
-	summaryLineLast: {
+	summaryRowComplete: {
+		backgroundColor: colors.primarySoft,
+		borderWidth: 1.5,
+		borderColor: colors.primary,
+	},
+	summaryRowLast: {
 		marginBottom: 0,
+	},
+	summaryCheck: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		borderWidth: 2,
+		borderColor: colors.border,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: spacing.sm,
+	},
+	summaryCheckComplete: {
+		backgroundColor: colors.primary,
+		borderColor: colors.primary,
+	},
+	summaryRowContent: {
+		flex: 1,
+	},
+	summaryLabel: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 13,
+		fontWeight: "600",
+		color: colors.primary,
+		marginBottom: 2,
+	},
+	summaryLabelMuted: {
+		color: colors.textSecondary,
+	},
+	summaryValue: {
+		fontFamily: fonts.body,
+		fontSize: 15,
+		lineHeight: 20,
+		color: colors.textSecondary,
+	},
+	summaryValueComplete: {
+		fontFamily: fonts.headingBold,
+		fontSize: 17,
+		fontWeight: "700",
+		lineHeight: 22,
+		color: colors.primary,
+	},
+	summaryValueMuted: {
+		fontStyle: "italic",
 	},
 	footer: {
 		paddingHorizontal: spacing.lg,
@@ -871,21 +1083,16 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		backgroundColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
 	},
 	primaryBelowFieldButton: {
 		marginTop: spacing.md,
 		alignSelf: "stretch",
-	},
-	onboardingButton: {
-		backgroundColor: "#FFFFFF",
+		width: "100%",
 	},
 	backText: {
 		fontSize: 16,
 		color: "rgba(255,255,255,0.9)",
-	},
-	footerButton: {
-		backgroundColor: "#FFFFFF",
 	},
 	backIconButton: {
 		position: "absolute",

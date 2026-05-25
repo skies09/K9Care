@@ -15,14 +15,14 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import { File, Directory, Paths } from "expo-file-system";
-import * as FileSystemLegacy from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useDogContext } from "../context/DogContext";
 import type { ConditionTag } from "../types";
 import type { RootStackParamList } from "../navigation/RootNavigator";
 import { colors } from "../theme/colors";
+import { fonts, textStyles } from '../theme/typography';
 import { spacing } from "../theme/spacing";
 
 function formatDateYYYYMMDD(date: Date): string {
@@ -149,13 +149,15 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 		if (result.canceled || !result.assets?.[0]?.uri) return;
 		const uri = result.assets[0].uri;
 		try {
-			const dir = new Directory(Paths.document, "dog_photos");
-			if (!dir.exists) dir.create();
-			const destFile = new File(dir, `${dogId}.jpg`);
-			// Use legacy copyAsync; it handles image-picker URIs (ph://, content://) reliably
-			await FileSystemLegacy.copyAsync({ from: uri, to: destFile.uri });
-			setPhotoUri(destFile.uri);
-			updateDog(dogId, buildPayload(destFile.uri));
+			const dir = `${FileSystem.documentDirectory}dog_photos/`;
+			const dirInfo = await FileSystem.getInfoAsync(dir);
+			if (!dirInfo.exists) {
+				await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+			}
+			const destUri = `${dir}${dogId}.jpg`;
+			await FileSystem.copyAsync({ from: uri, to: destUri });
+			setPhotoUri(destUri);
+			updateDog(dogId, buildPayload(destUri));
 			setCurrentDogId(dogId);
 		} catch (e: any) {
 			Alert.alert("Error", e?.message ?? "Could not save photo.");
@@ -436,9 +438,10 @@ const styles = StyleSheet.create({
 		opacity: 0.5,
 	},
 	saveButtonHeaderText: {
+		fontFamily: fonts.bodyMedium,
 		fontSize: 17,
 		fontWeight: "600",
-		color: colors.primaryBlue,
+		color: colors.primary,
 	},
 	error: { fontSize: 16, color: colors.textSecondary, padding: spacing.lg },
 	card: {
@@ -448,7 +451,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: colors.border,
 		marginBottom: 16,
-		shadowColor: "#000",
+		shadowColor: colors.shadow,
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.06,
 		shadowRadius: 8,
@@ -470,9 +473,8 @@ const styles = StyleSheet.create({
 	},
 	cardTitleBlock: { flex: 1 },
 	cardTitle: {
+		...textStyles.cardTitle,
 		fontSize: 18,
-		fontWeight: "700",
-		color: colors.textPrimary,
 	},
 	cardSubtitle: {
 		fontSize: 13,
@@ -546,7 +548,7 @@ const styles = StyleSheet.create({
 		borderTopColor: colors.border,
 	},
 	datePickerDoneText: {
-		color: colors.primaryBlue,
+		color: colors.primary,
 		fontWeight: "700",
 	},
 	datePickerClear: {
@@ -593,8 +595,8 @@ const styles = StyleSheet.create({
 		marginLeft: 6,
 	},
 	unitChipActive: {
-		borderColor: colors.primaryBlue,
-		backgroundColor: "#E6F0FF",
+		borderColor: colors.primary,
+		backgroundColor: colors.primarySoft,
 	},
 	unitChipText: {
 		fontSize: 14,
@@ -602,7 +604,7 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 	},
 	unitChipTextActive: {
-		color: colors.primaryBlue,
+		color: colors.primary,
 	},
 	noteInput: {
 		height: 80,
@@ -620,11 +622,11 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	chipActive: {
-		borderColor: colors.primaryBlue,
-		backgroundColor: "#E6F0FF",
+		borderColor: colors.primary,
+		backgroundColor: colors.primarySoft,
 	},
 	chipText: { fontSize: 14, color: colors.textSecondary },
-	chipTextActive: { color: colors.primaryBlue, fontWeight: "600" },
+	chipTextActive: { color: colors.primary, fontWeight: "600" },
 });
 
 export default EditDogScreen;

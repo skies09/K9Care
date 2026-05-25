@@ -16,6 +16,7 @@ import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { SeizureEvent } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 
 const CLUSTER_WINDOW_HOURS = 24;
 const CLUSTER_THRESHOLD = 3;
@@ -204,14 +205,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 4,
   },
   subtitle: {
+    ...textStyles.subtitle,
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 16,
   },
   warningCard: {
@@ -238,7 +237,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -266,13 +265,13 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   timerButtonStart: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
   },
   timerButtonStop: {
     backgroundColor: colors.danger,
   },
   timerButtonText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
     fontWeight: '700',
     fontSize: 20,
   },

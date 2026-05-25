@@ -19,6 +19,7 @@ import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { WeightLog } from '../types';
 import { colors } from '../theme/colors';
+import { fonts, textStyles } from '../theme/typography';
 
 const WeightScreen: React.FC = () => {
   const { currentDog } = useDogContext();
@@ -193,14 +194,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...textStyles.screenTitle,
     marginBottom: 4,
   },
   subtitle: {
+    ...textStyles.subtitle,
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 16,
   },
   latestCard: {
@@ -236,7 +235,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   primaryButton: {
-    backgroundColor: colors.primaryBlue,
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
@@ -292,7 +291,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
     fontWeight: '700',
     fontSize: 17,
   },

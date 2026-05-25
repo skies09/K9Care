@@ -16,6 +16,7 @@ import { getDb } from "../db/database";
 import { useDogContext } from "../context/DogContext";
 import { Medication, Vaccination } from "../types";
 import { colors } from "../theme/colors";
+import { fonts, textStyles } from '../theme/typography';
 import {
 	ensureNotificationPermissions,
 	scheduleOneOffNotification,
@@ -673,14 +674,12 @@ const styles = StyleSheet.create({
 		paddingBottom: 32,
 	},
 	title: {
-		fontSize: 24,
-		fontWeight: "700",
-		color: colors.textPrimary,
+		...textStyles.screenTitle,
 		marginBottom: 8,
 	},
 	subtitle: {
+		...textStyles.subtitle,
 		fontSize: 14,
-		color: colors.textSecondary,
 		marginBottom: 16,
 	},
 	tabs: {
@@ -699,7 +698,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	tabActive: {
-		backgroundColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
 	},
 	tabText: {
 		fontSize: 14,
@@ -707,7 +706,7 @@ const styles = StyleSheet.create({
 		color: colors.textSecondary,
 	},
 	tabTextActive: {
-		color: "#fff",
+		color: colors.textOnPrimary,
 	},
 	list: {
 		flex: 1,
@@ -777,8 +776,8 @@ const styles = StyleSheet.create({
 		borderColor: colors.border,
 	},
 	forDogChipActive: {
-		backgroundColor: colors.primaryBlue,
-		borderColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
+		borderColor: colors.primary,
 	},
 	forDogChipText: {
 		fontSize: 14,
@@ -786,7 +785,7 @@ const styles = StyleSheet.create({
 		color: colors.textPrimary,
 	},
 	forDogChipTextActive: {
-		color: "#fff",
+		color: colors.textOnPrimary,
 	},
 	input: {
 		height: 44,
@@ -829,7 +828,7 @@ const styles = StyleSheet.create({
 		borderTopColor: colors.border,
 	},
 	datePickerDoneText: {
-		color: colors.primaryBlue,
+		color: colors.primary,
 		fontWeight: "700",
 	},
 	row: {
@@ -840,13 +839,13 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	primaryButton: {
-		backgroundColor: colors.primaryBlue,
+		backgroundColor: colors.primary,
 		paddingVertical: 10,
 		borderRadius: 999,
 		alignItems: "center",
 	},
 	primaryButtonText: {
-		color: "#fff",
+		color: colors.textOnPrimary,
 		fontWeight: "600",
 	},
 });
