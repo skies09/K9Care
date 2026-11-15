@@ -7,6 +7,7 @@ import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import RootNavigator from './src/navigation/RootNavigator';
 import { DogProvider } from './src/context/DogContext';
 import { colors } from './src/theme/colors';
+import { installWebFocusStyles } from './src/theme/webFocusStyles';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -15,6 +16,10 @@ export default function App() {
     Inter_400Regular,
     Inter_500Medium,
   });
+
+  useEffect(() => {
+    installWebFocusStyles();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded) {

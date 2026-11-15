@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { SeizureEvent } from '../types';
@@ -205,7 +206,7 @@ const SeizuresScreen: React.FC = () => {
       <StatusBar style="dark" />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
@@ -216,7 +217,10 @@ const SeizuresScreen: React.FC = () => {
         >
           <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Seizures</Text>
+        <View style={styles.titleRow}>
+          <BrandIcon name="seizures" size={36} />
+          <Text style={styles.title}>Seizures</Text>
+        </View>
       <Text style={styles.subtitle}>
         Time seizures so you can share accurate information with your vet. If you&apos;re worried,
         contact your vet or emergency clinic.
@@ -384,9 +388,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtitle: {
     ...textStyles.subtitle,

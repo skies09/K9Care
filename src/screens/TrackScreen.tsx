@@ -10,58 +10,73 @@ import { fonts, textStyles } from '../theme/typography';
 import { spacing } from '../theme/spacing';
 import { Card } from '../components/ui/Card';
 import { Button as AppButton } from '../components/ui/Button';
+import { BrandIcon, BrandIconName } from '../components/BrandIcon';
 
 const TRACKER_CONFIG: Record<
   ConditionTag,
-  { title: string; subtitle: string; screen: keyof RootStackParamList; button: string }
+  {
+    title: string;
+    subtitle: string;
+    screen: keyof RootStackParamList;
+    button: string;
+    icon: BrandIconName;
+  }
 > = {
   heart: {
     title: 'Breathing',
     subtitle: 'Log resting breathing rate.',
     screen: 'Breathing',
     button: 'Log breathing',
+    icon: 'heart',
   },
   epilepsy: {
     title: 'Seizures',
     subtitle: 'Start a seizure timer.',
     screen: 'Seizures',
     button: 'Start seizure timer',
+    icon: 'seizures',
   },
   arthritis: {
     title: 'Arthritis & mobility',
     subtitle: 'Log mobility and pain scores.',
     screen: 'Arthritis',
     button: 'Open mobility',
+    icon: 'arthritis',
   },
   allergy: {
     title: 'Allergies & skin',
     subtitle: 'Record flare-ups and triggers.',
     screen: 'Allergies',
     button: 'Open allergies',
+    icon: 'allergies',
   },
   digestive: {
-    title: 'Digestive',
+    title: 'Digestion',
     subtitle: 'Track stool, vomiting, appetite.',
     screen: 'Digestive',
-    button: 'Open digestive',
+    button: 'Open digestion',
+    icon: 'digestion',
   },
   diabetes: {
     title: 'Diabetes',
     subtitle: 'Log insulin and glucose.',
     screen: 'Diabetes',
     button: 'Open diabetes',
+    icon: 'diabetes',
   },
   kidney: {
     title: 'Kidney & urinary',
     subtitle: 'Monitor water and urination.',
     screen: 'Kidney',
     button: 'Open kidney',
+    icon: 'kidney',
   },
   anxiety: {
     title: 'Anxiety & behaviour',
     subtitle: 'Track anxiety episodes.',
     screen: 'Anxiety',
     button: 'Open anxiety',
+    icon: 'anxiety',
   },
 };
 
@@ -112,10 +127,15 @@ const TrackScreen: React.FC = () => {
         </Text>
       ) : (
         <View style={styles.cards}>
-          {trackers.map(({ id, title, subtitle, screen, button }) => (
+          {trackers.map(({ id, title, subtitle, screen, button, icon }) => (
             <Card key={id}>
-              <Text style={styles.cardTitle}>{title}</Text>
-              <Text style={styles.cardText}>{subtitle}</Text>
+              <View style={styles.cardHeader}>
+                <BrandIcon name={icon} size={40} />
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.cardTitle}>{title}</Text>
+                  <Text style={styles.cardText}>{subtitle}</Text>
+                </View>
+              </View>
               <AppButton
                 title={button}
                 onPress={() => navigation.navigate(screen)}
@@ -192,6 +212,15 @@ const styles = StyleSheet.create({
   },
   cards: {
     flexDirection: 'column',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  cardHeaderText: {
+    flex: 1,
   },
   cardTitle: {
     ...textStyles.cardTitle,

@@ -8,10 +8,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { useDogContext } from '../context/DogContext';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,13 +22,14 @@ import { Card } from '../components/ui/Card';
 import { Button as AppButton } from '../components/ui/Button';
 import { colors } from '../theme/colors';
 import { fonts, textStyles } from '../theme/typography';
+import { showConfirm } from '../utils/showAlert';
 
 const CONDITION_LABELS: Record<ConditionTag, string> = {
   heart: 'Heart',
   epilepsy: 'Seizures / epilepsy',
   arthritis: 'Arthritis & mobility',
   allergy: 'Allergies & skin',
-  digestive: 'Digestive',
+  digestive: 'Digestion',
   diabetes: 'Diabetes',
   kidney: 'Kidney & urinary',
   anxiety: 'Anxiety & behaviour',
@@ -110,13 +111,13 @@ const DogsScreen: React.FC = () => {
   };
 
   const handleRemovePress = (dog: { id: string; name: string }) => {
-    Alert.alert(
+    showConfirm(
       'Remove dog?',
       `Are you sure you want to remove ${dog.name}? This can't be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => deleteDog(dog.id) },
-      ]
+      () => {
+        void deleteDog(dog.id);
+      },
+      { confirmLabel: 'Remove' },
     );
   };
 
@@ -143,52 +144,48 @@ const DogsScreen: React.FC = () => {
             ? item.primaryConditions.map((id) => CONDITION_LABELS[id] ?? id).join(', ')
             : null;
           return (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.dogCard}
-              onPress={() => navigation.navigate('EditDog', { dogId: item.id })}
-              activeOpacity={0.8}
-            >
-              <View style={styles.dogCardContent}>
+            <View key={item.id} style={styles.dogCard}>
+              <TouchableOpacity
+                style={styles.dogCardContent}
+                onPress={() => navigation.navigate('EditDog', { dogId: item.id })}
+                activeOpacity={0.8}
+              >
                 <View style={styles.dogAvatarWrap}>
                   {item.photoUri ? (
                     <Image source={{ uri: item.photoUri }} style={styles.dogAvatar} />
                   ) : (
                     <View style={styles.dogAvatarPlaceholder}>
-                      <Ionicons name="paw" size={28} color={colors.textSecondary} />
+                      <BrandIcon name="paw" size={30} />
                     </View>
                   )}
                 </View>
                 <View style={styles.dogCardMain}>
                   <View style={styles.dogCardHeader}>
                     <Text style={styles.dogName}>{item.name}</Text>
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleRemovePress(item);
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel={`Remove ${item.name}`}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons name="close" size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                  </View>
+                  <View style={styles.dogDetails}>
+                    {item.breed ? <Text style={styles.dogDetail}>{item.breed}</Text> : null}
+                    {age ? <Text style={styles.dogDetail}>Age: {age}</Text> : null}
+                    {item.weightKg != null ? (
+                      <Text style={styles.dogDetail}>Weight: {item.weightKg} kg</Text>
+                    ) : null}
+                    {item.notes ? <Text style={styles.dogDetail}>Notes: {item.notes}</Text> : null}
+                    {conditionsText ? (
+                      <Text style={styles.dogDetail}>Tracking: {conditionsText}</Text>
+                    ) : null}
+                  </View>
                 </View>
-                <View style={styles.dogDetails}>
-                  {item.breed ? <Text style={styles.dogDetail}>{item.breed}</Text> : null}
-                  {age ? <Text style={styles.dogDetail}>Age: {age}</Text> : null}
-                  {item.weightKg != null ? (
-                    <Text style={styles.dogDetail}>Weight: {item.weightKg} kg</Text>
-                  ) : null}
-                  {item.notes ? <Text style={styles.dogDetail}>Notes: {item.notes}</Text> : null}
-                  {conditionsText ? (
-                    <Text style={styles.dogDetail}>Tracking: {conditionsText}</Text>
-                  ) : null}
-                </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => handleRemovePress(item)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={`Remove ${item.name}`}
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           );
         })
       )}
@@ -242,10 +239,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     marginBottom: spacing.sm,
+    position: 'relative',
   },
   dogCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    paddingRight: 28,
   },
   dogAvatarWrap: {
     marginRight: spacing.md,
@@ -277,7 +276,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   removeButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
     padding: 4,
+    zIndex: 2,
   },
   dogDetails: {
     marginTop: 2,
@@ -290,7 +293,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 24,
+    marginTop: 8,
+    marginBottom: 20,
   },
   addRow: {
     flexDirection: 'row',

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { AllergyLog, AllergyTrigger } from '../types';
@@ -134,7 +135,7 @@ const AllergyScreen: React.FC = () => {
       >
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
@@ -144,7 +145,10 @@ const AllergyScreen: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Allergies & skin</Text>
+          <View style={styles.titleRow}>
+            <BrandIcon name="allergies" size={36} />
+            <Text style={styles.title}>Allergies & skin</Text>
+          </View>
       <Text style={styles.subtitle}>
         Log itch severity, skin and ear issues, and likely triggers to help spot seasonal or
         pattern-based flares.
@@ -278,9 +282,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtitle: {
     ...textStyles.subtitle,

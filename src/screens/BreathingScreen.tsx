@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { BreathingCheck } from '../types';
@@ -131,7 +132,7 @@ const BreathingScreen: React.FC = () => {
       <StatusBar style="dark" />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
         keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity
@@ -141,7 +142,10 @@ const BreathingScreen: React.FC = () => {
       >
         <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
       </TouchableOpacity>
-      <Text style={styles.title}>Heart – Resting breathing rate</Text>
+      <View style={styles.titleRow}>
+        <BrandIcon name="heart" size={36} />
+        <Text style={styles.title}>Heart – Resting breathing rate</Text>
+      </View>
       <Text style={styles.disclaimer}>
         Breathing should be monitored when your dog is resting. Count each full rise and fall of the
         chest as one breath. This is for informational use only and does not replace veterinary
@@ -230,9 +234,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
+    flexShrink: 1,
   },
   disclaimer: {
     fontSize: 14,

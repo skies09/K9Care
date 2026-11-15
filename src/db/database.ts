@@ -1,19 +1,12 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 const DB_NAME = 'k9care.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export function getDb(): SQLite.SQLiteDatabase {
-  if (!db) {
-    db = SQLite.openDatabaseSync(DB_NAME);
-    runMigrations(db);
-  }
-  return db;
-}
-
-function runMigrations(database: SQLite.SQLiteDatabase) {
-  database.execSync(`
+const MIGRATIONS_SQL = `
     CREATE TABLE IF NOT EXISTS dogs (
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
@@ -185,6 +178,48 @@ function runMigrations(database: SQLite.SQLiteDatabase) {
       notes TEXT,
       FOREIGN KEY(dogId) REFERENCES dogs(id) ON DELETE CASCADE
     );
-  `);
+`;
+
+async function runMigrations(database: SQLite.SQLiteDatabase) {
+  await database.execAsync(MIGRATIONS_SQL);
 }
 
+/** Open DB asynchronously (required on web before sync APIs). */
+export async function initDb(): Promise<SQLite.SQLiteDatabase> {
+  if (db) return db;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    const database = await SQLite.openDatabaseAsync(DB_NAME);
+    await runMigrations(database);
+    db = database;
+    return database;
+  })();
+
+  try {
+    return await initPromise;
+  } catch (error) {
+    initPromise = null;
+    throw error;
+  }
+}
+
+export function getDb(): SQLite.SQLiteDatabase {
+  if (db) return db;
+
+  // Native can open sync; web must call initDb() first (DogProvider does this).
+  if (Platform.OS === 'web') {
+    throw new Error(
+      'Database is not ready yet. Wait for the app to finish loading, then try again.',
+    );
+  }
+
+  db = SQLite.openDatabaseSync(DB_NAME);
+  // Migrations are sync on native for first open without awaiting initDb.
+  databaseExecSyncFallback(db);
+  return db;
+}
+
+function databaseExecSyncFallback(database: SQLite.SQLiteDatabase) {
+  database.execSync(MIGRATIONS_SQL);
+}

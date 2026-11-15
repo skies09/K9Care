@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { KidneyLog } from '../types';
@@ -116,7 +117,7 @@ const KidneyScreen: React.FC = () => {
       >
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
@@ -126,7 +127,10 @@ const KidneyScreen: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Kidney & urinary</Text>
+          <View style={styles.titleRow}>
+            <BrandIcon name="kidney" size={36} />
+            <Text style={styles.title}>Kidney & urinary</Text>
+          </View>
       <Text style={styles.subtitle}>
         Track approximate water intake, urination frequency, and accidents to support kidney or
         urinary conditions.
@@ -220,9 +224,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtitle: {
     ...textStyles.subtitle,

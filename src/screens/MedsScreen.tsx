@@ -21,6 +21,7 @@ import {
 	ensureNotificationPermissions,
 	scheduleOneOffNotification,
 } from "../services/notifications";
+import { BrandIcon } from "../components/BrandIcon";
 
 type MedsTab = "meds" | "vaccines";
 
@@ -300,7 +301,10 @@ const MedsScreen: React.FC = () => {
 				contentContainerStyle={styles.content}
 				keyboardShouldPersistTaps="handled"
 			>
-				<Text style={styles.title}>Health</Text>
+				<View style={styles.titleRow}>
+					<BrandIcon name="medication" size={40} />
+					<Text style={styles.title}>Health</Text>
+				</View>
 				<View style={styles.tabs}>
 					<TouchableOpacity
 						style={[
@@ -673,9 +677,15 @@ const styles = StyleSheet.create({
 		paddingTop: 64,
 		paddingBottom: 32,
 	},
+	titleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+		marginBottom: 4,
+	},
 	title: {
 		...textStyles.screenTitle,
-		marginBottom: 8,
+		marginBottom: 0,
 	},
 	subtitle: {
 		...textStyles.subtitle,
@@ -833,10 +843,12 @@ const styles = StyleSheet.create({
 	},
 	row: {
 		flexDirection: "row",
-		justifyContent: "space-between",
+		alignItems: "center",
+		gap: 8,
 	},
 	rowInput: {
 		flex: 1,
+		minWidth: 0,
 	},
 	primaryButton: {
 		backgroundColor: colors.primary,

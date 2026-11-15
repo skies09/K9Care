@@ -6,9 +6,9 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { Alert } from 'react-native';
-import { getDb } from '../db/database';
+import { initDb, getDb } from '../db/database';
 import { ConditionTag, Dog } from '../types';
+import { showAlert } from '../utils/showAlert';
 
 type DogContextValue = {
   dogs: Dog[];
@@ -49,6 +49,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loadDogs = useCallback(async () => {
     try {
+      await initDb();
       const database = getDb();
       const rows = await database.getAllAsync<any>('SELECT * FROM dogs', []);
       const list: Dog[] = rows.map((row: any) => ({
@@ -68,8 +69,13 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentDogId(list[0].id);
       }
       setLoading(false);
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
+      showAlert(
+        'Storage unavailable',
+        e?.message ??
+          'Could not open the local database. On web, restart with a fresh Expo server after metro.config.js changes.',
+      );
     }
   }, [currentDogId]);
 
@@ -96,10 +102,11 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const trimmedName = name.trim();
       if (!trimmedName) return;
 
+      await initDb();
       const database = getDb();
       const existing = await database.getAllAsync<any>('SELECT id FROM dogs', []);
       if (existing.length >= 5) {
-        Alert.alert('Limit reached', 'Maximum 5 dogs. Remove a dog to add another.');
+        showAlert('Limit reached', 'Maximum 5 dogs. Remove a dog to add another.');
         loadDogs();
         return;
       }
@@ -129,10 +136,12 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setCurrentDogId(id);
         }
       } catch (error: any) {
-        Alert.alert('Error', `Could not save dog: ${error?.message ?? 'Unknown error'}`);
+        const message = `Could not save dog: ${error?.message ?? 'Unknown error'}`;
+        showAlert('Error', message);
+        throw error;
       }
     },
-    [currentDogId]
+    [currentDogId, loadDogs]
   );
 
   const updateDog = useCallback(
@@ -156,6 +165,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         primaryConditions?: ConditionTag[];
       }
     ) => {
+      await initDb();
       const database = getDb();
       const dog = dogs.find((d) => d.id === id);
       if (!dog) return;
@@ -195,13 +205,14 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           )
         );
       } catch (error: any) {
-        Alert.alert('Error', `Could not update dog: ${error?.message ?? 'Unknown error'}`);
+        showAlert('Error', `Could not update dog: ${error?.message ?? 'Unknown error'}`);
       }
     },
     [dogs]
   );
 
   const deleteDog = useCallback(async (id: string) => {
+    await initDb();
     const database = getDb();
     try {
       await database.runAsync('DELETE FROM dogs WHERE id = ?', [id]);
@@ -211,7 +222,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrentDogId(nextDogs.length > 0 ? nextDogs[0].id : null);
       }
     } catch (error: any) {
-      Alert.alert('Error', `Could not remove dog: ${error?.message ?? 'Unknown error'}`);
+      showAlert('Error', `Could not remove dog: ${error?.message ?? 'Unknown error'}`);
     }
   }, [currentDogId, dogs]);
 

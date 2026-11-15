@@ -6,8 +6,6 @@ import {
 	TextInput,
 	TouchableOpacity,
 	ScrollView,
-	Alert,
-	Image,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { PartialDobPicker } from "../components/PartialDobPicker";
@@ -19,6 +17,9 @@ import { colors } from "../theme/colors";
 import { fonts, textStyles } from "../theme/typography";
 import { spacing } from "../theme/spacing";
 import { Button as AppButton } from "../components/ui/Button";
+import { BrandIcon } from "../components/BrandIcon";
+import { CONDITION_ICONS } from "../constants/conditionIcons";
+import { showAlert } from "../utils/showAlert";
 import {
 	buildDobString,
 	formatDobDisplay,
@@ -38,55 +39,46 @@ const CONDITION_OPTIONS: {
 	id: ConditionTag;
 	label: string;
 	description: string;
-	icon: keyof typeof Ionicons.glyphMap;
 }[] = [
 	{
 		id: "heart",
 		label: "Heart",
 		description: "Heart and breathing issues",
-		icon: "heart",
 	},
 	{
 		id: "epilepsy",
 		label: "Seizures / epilepsy",
 		description: "Seizures or fits",
-		icon: "flash",
 	},
 	{
 		id: "arthritis",
 		label: "Arthritis & mobility",
 		description: "Stiffness, pain, mobility",
-		icon: "body",
 	},
 	{
 		id: "allergy",
 		label: "Allergies & skin",
 		description: "Itch, flare-ups, ears",
-		icon: "leaf",
 	},
 	{
 		id: "digestive",
-		label: "Digestive",
+		label: "Digestion",
 		description: "Stomach, stool, vomiting",
-		icon: "nutrition",
 	},
 	{
 		id: "diabetes",
 		label: "Diabetes",
 		description: "Insulin and glucose",
-		icon: "medical",
 	},
 	{
 		id: "kidney",
 		label: "Kidney & urinary",
 		description: "Water, urine, accidents",
-		icon: "water",
 	},
 	{
 		id: "anxiety",
 		label: "Anxiety & behaviour",
 		description: "Stress and triggers",
-		icon: "happy",
 	},
 ];
 
@@ -129,7 +121,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 				return prev.filter((c) => c !== id);
 			}
 			if (prev.length >= 3) {
-				Alert.alert(
+				showAlert(
 					"Limit reached",
 					"You can choose up to 3 to start. You can add more later.",
 				);
@@ -181,7 +173,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 				routes: [{ name: "Tabs" }],
 			});
 		} catch (e: any) {
-			Alert.alert(
+			showAlert(
 				"Error",
 				e?.message ?? "Something went wrong saving your dog.",
 			);
@@ -193,13 +185,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 			case 0:
 				return (
 					<View style={styles.centerContent}>
-						<Image
-							source={require("../../assets/medical.png")}
-							style={styles.imagePlaceholder}
-							resizeMode="contain"
-							accessible
-							accessibilityLabel="Medical kit icon for dog health"
-						/>
+						<BrandIcon name="logo" size={120} style={styles.logoImage} />
 						<Text style={styles.tagline}>
 							Let&apos;s set up your dog&apos;s health space.
 						</Text>
@@ -426,16 +412,22 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 											}
 											activeOpacity={0.8}
 										>
-											<Ionicons
-												name={option.icon}
-												size={28}
-												color={
-													active
-														? colors.textOnPrimary
-														: colors.primary
-												}
-												style={styles.conditionCardIcon}
-											/>
+											<View
+												style={[
+													styles.conditionCardIconWrap,
+													active &&
+														styles.conditionCardIconWrapSelected,
+												]}
+											>
+												<BrandIcon
+													name={
+														CONDITION_ICONS[
+															option.id
+														]
+													}
+													size={30}
+												/>
+											</View>
 											<View
 												style={
 													styles.conditionCardContent
@@ -712,12 +704,10 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-start",
 		marginTop: spacing.md,
 	},
-	imagePlaceholder: {
-		width: 140,
-		height: 140,
-		borderRadius: 70,
-		backgroundColor: "#FFFFFF",
+	logoImage: {
 		marginBottom: spacing.md,
+		borderRadius: 60,
+		overflow: "hidden",
 	},
 	tagline: {
 		fontFamily: fonts.headingSemi,
@@ -969,8 +959,17 @@ const styles = StyleSheet.create({
 		borderColor: colors.primary,
 		backgroundColor: colors.primary,
 	},
-	conditionCardIcon: {
+	conditionCardIconWrap: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		backgroundColor: colors.background,
+		alignItems: "center",
+		justifyContent: "center",
 		marginRight: spacing.sm,
+	},
+	conditionCardIconWrapSelected: {
+		backgroundColor: "#FFFFFF",
 	},
 	conditionCardContent: {
 		flex: 1,

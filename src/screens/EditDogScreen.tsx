@@ -7,10 +7,8 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	Alert,
-	Platform,
 	Image,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
@@ -24,12 +22,22 @@ import { colors } from "../theme/colors";
 import { fonts, textStyles } from '../theme/typography';
 import { spacing } from "../theme/spacing";
 import { Button as AppButton } from "../components/ui/Button";
+import { BrandIcon } from "../components/BrandIcon";
+import { PartialDobPicker } from "../components/PartialDobPicker";
+import { CONDITION_ICONS } from "../constants/conditionIcons";
+import {
+	buildDobString,
+	formatDobDisplay,
+	parseDobParts,
+	type DobParts,
+} from "../utils/dobFormat";
 
-function formatDateYYYYMMDD(date: Date): string {
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	const d = String(date.getDate()).padStart(2, "0");
-	return `${y}-${m}-${d}`;
+function defaultDobParts(): DobParts {
+	return { year: new Date().getFullYear() - 2, month: 0, day: 0 };
+}
+
+function initialDobParts(dob: string | null | undefined): DobParts {
+	return parseDobParts(dob ?? "") ?? defaultDobParts();
 }
 
 const CONDITION_OPTIONS: { id: ConditionTag; label: string }[] = [
@@ -37,7 +45,7 @@ const CONDITION_OPTIONS: { id: ConditionTag; label: string }[] = [
 	{ id: "epilepsy", label: "Seizures / epilepsy" },
 	{ id: "arthritis", label: "Arthritis & mobility" },
 	{ id: "allergy", label: "Allergies & skin" },
-	{ id: "digestive", label: "Digestive" },
+	{ id: "digestive", label: "Digestion" },
 	{ id: "diabetes", label: "Diabetes" },
 	{ id: "kidney", label: "Kidney & urinary" },
 	{ id: "anxiety", label: "Anxiety & behaviour" },
@@ -54,8 +62,8 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 	const [name, setName] = useState(dog?.name ?? "");
 	const [breed, setBreed] = useState(dog?.breed ?? "");
 	const [dob, setDob] = useState(dog?.dob ?? "");
-	const [dobObj, setDobObj] = useState<Date>(
-		dog?.dob ? new Date(`${dog.dob}T00:00:00`) : new Date(),
+	const [dobParts, setDobParts] = useState<DobParts>(() =>
+		initialDobParts(dog?.dob),
 	);
 	const [showDobPicker, setShowDobPicker] = useState(false);
 	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
@@ -110,15 +118,14 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 		return () => clearTimeout(t);
 	}, [dogId, name, breed, dob, weight, notes, selectedConditions]);
 
-	useEffect(() => {
-		const parsed = new Date(`${dob}T00:00:00`);
-		if (!Number.isNaN(parsed.getTime())) setDobObj(parsed);
-	}, [dob]);
+	const handleDobChange = (parts: DobParts) => {
+		setDobParts(parts);
+		setDob(buildDobString(parts));
+	};
 
 	const toggleCondition = (id: ConditionTag) => {
 		setSelectedConditions((prev) => {
 			if (prev.includes(id)) return prev.filter((c) => c !== id);
-			if (prev.length >= 5) return prev; // allow up to 5 when editing
 			return [...prev, id];
 		});
 	};
@@ -181,7 +188,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 					contentContainerStyle={[
 						styles.content,
 						{
-							paddingTop: insets.top + 4,
+							paddingTop: insets.top + 16,
 							paddingBottom: Math.max(insets.bottom, spacing.lg),
 						},
 					]}
@@ -247,43 +254,40 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 						<Text style={styles.fieldLabel}>Birthday</Text>
 						<TouchableOpacity
 							style={[styles.input, styles.dateInput]}
-							onPress={() => setShowDobPicker(true)}
+							onPress={() =>
+								setShowDobPicker((open) => {
+									if (!open && !dob.trim()) {
+										setDob(buildDobString(dobParts));
+									}
+									return !open;
+								})
+							}
 							activeOpacity={0.85}
 						>
 							<Text style={styles.dateInputValueLeft}>
-								{dob?.trim() ? dob : "Select date"}
+								{dob?.trim() ? formatDobDisplay(dob) : "Select date"}
 							</Text>
 							<Text style={styles.dateInputChevron} accessibilityElementsHidden>
-								›
+								{showDobPicker ? "˄" : "›"}
 							</Text>
 						</TouchableOpacity>
 						{showDobPicker && (
 							<View style={styles.datePickerWrap}>
-								<DateTimePicker
-									value={dobObj}
-									mode="date"
-									display={Platform.OS === "ios" ? "spinner" : "default"}
-									onChange={(_, selectedDate) => {
-										if (Platform.OS !== "ios") setShowDobPicker(false);
-										if (!selectedDate) return;
-										setDobObj(selectedDate);
-										setDob(formatDateYYYYMMDD(selectedDate));
-									}}
+								<PartialDobPicker
+									parts={dobParts}
+									onChange={handleDobChange}
 								/>
-								{Platform.OS === "ios" && (
-									<TouchableOpacity
-										style={styles.datePickerDone}
-										onPress={() => setShowDobPicker(false)}
-									>
-										<Text style={styles.datePickerDoneText}>
-											Done
-										</Text>
-									</TouchableOpacity>
-								)}
+								<TouchableOpacity
+									style={styles.datePickerDone}
+									onPress={() => setShowDobPicker(false)}
+								>
+									<Text style={styles.datePickerDoneText}>Done</Text>
+								</TouchableOpacity>
 								<TouchableOpacity
 									style={styles.datePickerClear}
 									onPress={() => {
 										setDob("");
+										setDobParts(defaultDobParts());
 										setShowDobPicker(false);
 									}}
 								>
@@ -355,10 +359,10 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 					<View style={styles.card}>
 						<View style={styles.cardHeader}>
 							<View style={styles.cardIconWrap}>
-								<Ionicons
-									name="medkit-outline"
-									size={28}
-									color={colors.primaryBlue}
+								<BrandIcon
+									name="health"
+									size={32}
+									style={styles.cardHealthIcon}
 								/>
 							</View>
 							<View style={styles.cardTitleBlock}>
@@ -366,7 +370,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 									Health areas to track
 								</Text>
 								<Text style={styles.cardSubtitle}>
-									Select up to 5.
+									Select any that apply.
 								</Text>
 							</View>
 						</View>
@@ -385,6 +389,17 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 										onPress={() => toggleCondition(opt.id)}
 										activeOpacity={0.7}
 									>
+										<View
+											style={[
+												styles.chipIconWrap,
+												active && styles.chipIconWrapActive,
+											]}
+										>
+											<BrandIcon
+												name={CONDITION_ICONS[opt.id]}
+												size={22}
+											/>
+										</View>
 										<Text
 											style={[
 												styles.chipText,
@@ -472,6 +487,12 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 14,
+		overflow: "hidden",
+	},
+	cardHealthIcon: {
+		width: 34,
+		height: 34,
+		alignSelf: "center",
 	},
 	cardTitleBlock: { flex: 1 },
 	cardTitle: {
@@ -609,12 +630,16 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 	},
 	noteInput: {
-		height: 80,
+		height: 96,
+		paddingTop: 12,
+		paddingBottom: 12,
 		textAlignVertical: "top",
 	},
 	chips: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 },
 	chip: {
-		paddingHorizontal: 12,
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 10,
 		paddingVertical: 8,
 		borderRadius: 999,
 		borderWidth: 1,
@@ -622,10 +647,22 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.cardBackground,
 		marginRight: 8,
 		marginBottom: 8,
+		gap: 6,
 	},
 	chipActive: {
 		borderColor: colors.primary,
 		backgroundColor: colors.primarySoft,
+	},
+	chipIconWrap: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		backgroundColor: colors.background,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	chipIconWrapActive: {
+		backgroundColor: colors.cardBackground,
 	},
 	chipText: { fontSize: 14, color: colors.textSecondary },
 	chipTextActive: { color: colors.primary, fontWeight: "600" },

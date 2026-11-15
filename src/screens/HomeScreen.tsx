@@ -21,6 +21,7 @@ import { fonts, textStyles } from "../theme/typography";
 import { spacing } from "../theme/spacing";
 import { Card } from "../components/ui/Card";
 import { Button as AppButton } from "../components/ui/Button";
+import { BrandIcon, BrandIconName } from "../components/BrandIcon";
 import { Ionicons } from "@expo/vector-icons";
 import type { ConditionTag } from "../types";
 
@@ -62,48 +63,48 @@ const CONDITION_STAT_CONFIG: Record<
 	ConditionTag,
 	{
 		label: string;
-		icon: keyof typeof Ionicons.glyphMap;
+		icon: BrandIconName;
 		statKey: keyof HomeStats;
 	}
 > = {
 	heart: {
 		label: "Breathing checks",
-		icon: "fitness-outline",
+		icon: "heart",
 		statKey: "breathingCount",
 	},
 	epilepsy: {
 		label: "Seizure events",
-		icon: "pulse-outline",
+		icon: "seizures",
 		statKey: "seizureCount",
 	},
 	arthritis: {
 		label: "Mobility check-ins",
-		icon: "body-outline",
+		icon: "arthritis",
 		statKey: "mobilityCount",
 	},
 	allergy: {
 		label: "Allergy logs",
-		icon: "leaf-outline",
+		icon: "allergies",
 		statKey: "allergyCount",
 	},
 	digestive: {
-		label: "Digestive logs",
-		icon: "nutrition-outline",
+		label: "Digestion logs",
+		icon: "digestion",
 		statKey: "stoolCount",
 	},
 	diabetes: {
 		label: "Insulin / glucose",
-		icon: "medical-outline",
+		icon: "diabetes",
 		statKey: "insulinCount",
 	},
 	kidney: {
 		label: "Kidney logs",
-		icon: "water-outline",
+		icon: "kidney",
 		statKey: "kidneyCount",
 	},
 	anxiety: {
 		label: "Anxiety episodes",
-		icon: "happy-outline",
+		icon: "anxiety",
 		statKey: "anxietyCount",
 	},
 };
@@ -256,7 +257,25 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 			contentContainerStyle={styles.content}
 		>
 			<View style={styles.header}>
-				<Text style={styles.title}>K9Care</Text>
+				<View style={styles.brandRow}>
+					<View style={styles.brandLeft}>
+						<BrandIcon name="logo" size={44} />
+						<Text style={styles.title}>K9Care</Text>
+					</View>
+					<TouchableOpacity
+						style={styles.settingsButton}
+						onPress={() => parentNavigation.navigate("Settings")}
+						hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+						accessibilityRole="button"
+						accessibilityLabel="Settings"
+					>
+						<Ionicons
+							name="settings-outline"
+							size={24}
+							color={colors.textPrimary}
+						/>
+					</TouchableOpacity>
+				</View>
 				{dogs.length > 1 ? (
 					<View style={styles.dogSelectorRow}>
 						<ScrollView
@@ -307,11 +326,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 				<View style={styles.weightCardInner}>
 					<View style={styles.weightHeader}>
 						<View style={styles.weightIconWrap}>
-							<Ionicons
-								name="scale-outline"
-								size={28}
-								color={colors.primaryBlue}
-							/>
+							<BrandIcon name="weight" size={36} />
 						</View>
 						<View style={styles.weightTitleBlock}>
 							<Text style={styles.weightTitle}>Track weight</Text>
@@ -383,11 +398,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 					<View style={styles.seizureCardInner}>
 						<View style={styles.seizureHeader}>
 							<View style={styles.seizureIconWrap}>
-								<Ionicons
-									name="pulse-outline"
-									size={28}
-									color={colors.primaryBlue}
-								/>
+								<BrandIcon name="seizures" size={36} />
 							</View>
 							<View style={styles.seizureTitleBlock}>
 								<Text style={styles.seizureTitle}>
@@ -422,11 +433,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 					) : (
 						<View style={styles.statsGrid}>
 							<View style={styles.statTile}>
-								<Ionicons
-									name="scale-outline"
-									size={22}
-									color={colors.textSecondary}
-								/>
+								<BrandIcon name="weight" size={28} />
 								<Text style={styles.statValue}>
 									{stats.weightLogsCount}
 								</Text>
@@ -444,10 +451,9 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 										: (stats[config.statKey] as number);
 								return (
 									<View key={tag} style={styles.statTile}>
-										<Ionicons
+										<BrandIcon
 											name={config.icon}
-											size={22}
-											color={colors.textSecondary}
+											size={28}
 										/>
 										<Text style={styles.statValue}>
 											{value}
@@ -459,11 +465,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 								);
 							})}
 							<View style={styles.statTile}>
-								<Ionicons
-									name="medkit-outline"
-									size={22}
-									color={colors.textSecondary}
-								/>
+								<BrandIcon name="medication" size={28} />
 								<Text style={styles.statValue}>
 									{stats.medsCount}
 								</Text>
@@ -485,11 +487,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 			<View style={styles.vetSection}>
 				<Card>
 					<View style={styles.vetCardContent}>
-						<Ionicons
-							name="document-text-outline"
-							size={24}
-							color={colors.primaryBlue}
-						/>
+						<BrandIcon name="vet" size={40} />
 						<View style={styles.vetCardText}>
 							<Text style={styles.vetCardTitle}>Vet report</Text>
 							<Text style={styles.vetCardSubtitle}>
@@ -521,6 +519,27 @@ const styles = StyleSheet.create({
 	},
 	header: {
 		marginBottom: spacing.lg,
+	},
+	brandRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	brandLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: spacing.sm,
+		flexShrink: 1,
+	},
+	settingsButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: colors.cardBackground,
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	title: {
 		...textStyles.screenTitle,

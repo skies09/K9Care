@@ -345,7 +345,7 @@ const VetReportScreen: React.FC = () => {
   ${section("Medications", medRows ? `<tr><th>Name</th><th>Dose</th><th>Started</th></tr>${medRows}` : "")}
   ${section("Allergy / skin logs", allergyRows ? `<tr><th>Date</th><th>Itch severity</th></tr>${allergyRows}` : "")}
   ${section("Mobility / arthritis", mobilityRows ? `<tr><th>Date</th><th>Pain (1-5)</th></tr>${mobilityRows}` : "")}
-  ${section("Digestive / stool", stoolRows ? `<tr><th>Date</th><th>Stool score</th></tr>${stoolRows}` : "")}
+  ${section("Digestion / stool", stoolRows ? `<tr><th>Date</th><th>Stool score</th></tr>${stoolRows}` : "")}
   ${section("Insulin doses", insulinRows ? `<tr><th>Date & time</th><th>Units</th></tr>${insulinRows}` : "")}
   ${section("Glucose readings", glucoseRows ? `<tr><th>Date & time</th><th>Value</th></tr>${glucoseRows}` : "")}
   ${section("Kidney / urinary", kidneyRows ? `<tr><th>Date</th><th>Details</th></tr>${kidneyRows}` : "")}
@@ -481,7 +481,7 @@ const VetReportScreen: React.FC = () => {
 						.join("");
 					break;
 				case "stool":
-					title = "Digestive / stool";
+					title = "Digestion / stool";
 					header =
 						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Stool score</th>';
 					rows = data.stoolLogs
@@ -666,7 +666,7 @@ const VetReportScreen: React.FC = () => {
 				style={styles.container}
 				contentContainerStyle={[
 					styles.content,
-					{ paddingTop: insets.top + 4 },
+					{ paddingTop: insets.top + 16 },
 				]}
 			>
 				<TouchableOpacity
@@ -680,7 +680,6 @@ const VetReportScreen: React.FC = () => {
 						color={colors.textPrimary}
 					/>
 				</TouchableOpacity>
-
 				<Text style={styles.title}>Vet report</Text>
 				<Text style={styles.subtitle}>
 					{currentDog ? (
@@ -916,7 +915,7 @@ const VetReportScreen: React.FC = () => {
 								{data.stoolLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
-											Digestive
+											Digestion
 										</Text>
 										<Text style={styles.blockCount}>
 											{data.stoolLogs.length} logs
@@ -925,7 +924,7 @@ const VetReportScreen: React.FC = () => {
 											onPress={() =>
 												handleDownloadSection(
 													"stool",
-													"Digestive / stool",
+													"Digestion / stool",
 												)
 											}
 											style={styles.blockDownloadButton}
@@ -1076,7 +1075,8 @@ const styles = StyleSheet.create({
 	},
 	backButton: {
 		alignSelf: "flex-start",
-		marginBottom: 4,
+		marginLeft: -6,
+		marginBottom: 8,
 	},
 	title: {
 		...textStyles.screenTitle,

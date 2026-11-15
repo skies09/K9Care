@@ -3,9 +3,9 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useDogContext } from '../context/DogContext';
+import { BrandIcon, BrandIconName } from '../components/BrandIcon';
 import HomeScreen from '../screens/HomeScreen';
 import DogsScreen from '../screens/DogsScreen';
 import TrackScreen from '../screens/TrackScreen';
@@ -22,6 +22,7 @@ import KidneyScreen from '../screens/KidneyScreen';
 import AnxietyScreen from '../screens/AnxietyScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import EditDogScreen from '../screens/EditDogScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 export type RootTabParamList = {
   HomeTab: undefined;
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Tabs: undefined;
   EditDog: { dogId: string };
+  Settings: undefined;
   VetReport: undefined;
   Breathing: undefined;
   Seizures: undefined;
@@ -73,14 +75,33 @@ function Tabs() {
         tabBarStyle: {
           backgroundColor: colors.cardBackground,
           borderTopColor: colors.border,
+          height: 88,
+          paddingTop: 8,
+          paddingBottom: 14,
         },
-        tabBarIcon: ({ color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          if (route.name === 'HomeTab') iconName = 'home';
-          if (route.name === 'DogsTab') iconName = 'paw';
-          if (route.name === 'TrackTab') iconName = 'pulse';
-          if (route.name === 'MedsTab') iconName = 'medkit';
-          return <Ionicons name={iconName} size={size} color={color} />;
+        tabBarItemStyle: {
+          paddingTop: 2,
+          paddingBottom: 4,
+        },
+        tabBarLabelStyle: {
+          fontSize: 13,
+          fontWeight: '600',
+          marginTop: 4,
+          marginBottom: 2,
+        },
+        tabBarIcon: ({ focused }) => {
+          let iconName: BrandIconName = 'health';
+          if (route.name === 'HomeTab') iconName = 'health';
+          if (route.name === 'DogsTab') iconName = 'dog';
+          if (route.name === 'TrackTab') iconName = 'graph';
+          if (route.name === 'MedsTab') iconName = 'medication';
+          return (
+            <BrandIcon
+              name={iconName}
+              size={focused ? 30 : 28}
+              opacity={focused ? 1 : 0.42}
+            />
+          );
         },
       })}
     >
@@ -126,6 +147,11 @@ export default function RootNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="VetReport"
           component={VetReportScreen}
           options={{ title: 'Vet Report', headerShown: false }}
@@ -158,7 +184,7 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Digestive"
           component={DigestiveScreen}
-          options={{ title: 'Digestive Health', headerShown: false }}
+          options={{ title: 'Digestion', headerShown: false }}
         />
         <Stack.Screen
           name="Diabetes"

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { StoolLog } from '../types';
@@ -70,7 +71,7 @@ const DigestiveScreen: React.FC = () => {
 
   const handleSave = () => {
     if (!currentDog) {
-      Alert.alert('Add a dog first', 'You need a dog profile to log digestive health.');
+      Alert.alert('Add a dog first', 'You need a dog profile to log digestion.');
       return;
     }
     const scoreVal = Number(stoolScore);
@@ -119,7 +120,7 @@ const DigestiveScreen: React.FC = () => {
         setNotes('');
       })
       .catch(() => {
-        Alert.alert('Error', 'Could not save digestive log.');
+        Alert.alert('Error', 'Could not save digestion log.');
       });
   };
 
@@ -135,7 +136,7 @@ const DigestiveScreen: React.FC = () => {
       >
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
@@ -145,7 +146,10 @@ const DigestiveScreen: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Digestive health</Text>
+          <View style={styles.titleRow}>
+            <BrandIcon name="digestion" size={36} />
+            <Text style={styles.title}>Digestion</Text>
+          </View>
       <Text style={styles.subtitle}>
         Track stool quality, vomiting, diarrhea, and appetite to support IBD or sensitive stomach
         cases.
@@ -236,7 +240,7 @@ const DigestiveScreen: React.FC = () => {
           onChangeText={setNotes}
         />
         <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
-          <Text style={styles.primaryButtonText}>Save digestive log</Text>
+          <Text style={styles.primaryButtonText}>Save digestion log</Text>
         </TouchableOpacity>
       </View>
 
@@ -267,7 +271,7 @@ const DigestiveScreen: React.FC = () => {
             </View>
           )}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No digestive logs yet.</Text>
+            <Text style={styles.emptyText}>No digestion logs yet.</Text>
           }
         />
         </ScrollView>
@@ -293,9 +297,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtitle: {
     ...textStyles.subtitle,

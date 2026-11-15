@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { AnxietyLog, AnxietyTrigger } from '../types';
@@ -118,7 +119,7 @@ const AnxietyScreen: React.FC = () => {
       >
         <ScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
+          contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
@@ -128,7 +129,10 @@ const AnxietyScreen: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Anxiety & behaviour</Text>
+          <View style={styles.titleRow}>
+            <BrandIcon name="anxiety" size={36} />
+            <Text style={styles.title}>Anxiety & behaviour</Text>
+          </View>
       <Text style={styles.subtitle}>
         Log anxiety episodes, triggers, and severity to help your vet or behaviourist understand
         patterns.
@@ -233,9 +237,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 4,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
   title: {
     ...textStyles.screenTitle,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   subtitle: {
     ...textStyles.subtitle,

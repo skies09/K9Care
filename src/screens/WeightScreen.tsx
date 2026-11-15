@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandIcon } from '../components/BrandIcon';
 import { getDb } from '../db/database';
 import { useDogContext } from '../context/DogContext';
 import { WeightLog } from '../types';
@@ -91,7 +92,7 @@ const WeightScreen: React.FC = () => {
           contentContainerStyle={[
             styles.content,
             {
-              paddingTop: insets.top + 4,
+              paddingTop: insets.top + 16,
               paddingBottom: Math.max(insets.bottom, 32),
             },
           ]}
@@ -114,7 +115,7 @@ const WeightScreen: React.FC = () => {
           {logs.length > 0 && (
             <View style={styles.latestCard}>
               <View style={styles.latestLeft}>
-                <Ionicons name="scale-outline" size={22} color={colors.primaryBlue} />
+                <BrandIcon name="weight" size={26} />
                 <Text style={styles.latestLabel}>Latest</Text>
               </View>
               <Text style={styles.latestValue}>{logs[0].weightKg.toFixed(1)} kg</Text>
@@ -124,7 +125,7 @@ const WeightScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconWrap}>
-                <Ionicons name="scale-outline" size={28} color={colors.primaryBlue} />
+                <BrandIcon name="weight" size={34} />
               </View>
               <View style={styles.cardTitleBlock}>
                 <Text style={styles.cardTitle}>Log weight</Text>
