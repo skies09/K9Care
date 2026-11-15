@@ -6,9 +6,9 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	Linking,
-	Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/RootNavigator";
 import { colors } from "../theme/colors";
@@ -16,30 +16,40 @@ import { textStyles } from "../theme/typography";
 import { spacing } from "../theme/spacing";
 import { Card } from "../components/ui/Card";
 import { LEGAL } from "../constants/legal";
+import { showAlert } from "../utils/showAlert";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Settings">;
 
-async function openUrl(url: string | null, missingLabel: string) {
-	if (!url) {
-		Alert.alert(
-			"Coming soon",
-			`${missingLabel} will be available here once the page is live.`,
-		);
-		return;
-	}
-	const supported = await Linking.canOpenURL(url);
-	if (supported) {
+function mailTo(subject: string, body: string) {
+	const query = [
+		`subject=${encodeURIComponent(subject)}`,
+		`body=${encodeURIComponent(body)}`,
+	].join("&");
+	return `mailto:${LEGAL.supportEmail}?${query}`;
+}
+
+async function openMail(subject: string, body: string) {
+	const url = mailTo(subject, body);
+	try {
 		await Linking.openURL(url);
-	} else {
-		Alert.alert("Unable to open link", url);
+	} catch {
+		showAlert(
+			"Unable to open email",
+			`Please email ${LEGAL.supportEmail} instead.`,
+		);
 	}
 }
 
 export default function SettingsScreen({ navigation }: Props) {
+	const insets = useSafeAreaInsets();
+
 	return (
 		<ScrollView
 			style={styles.container}
-			contentContainerStyle={styles.content}
+			contentContainerStyle={[
+				styles.content,
+				{ paddingTop: insets.top + 16 },
+			]}
 		>
 			<View style={styles.headerRow}>
 				<TouchableOpacity
@@ -62,16 +72,25 @@ export default function SettingsScreen({ navigation }: Props) {
 			<Text style={styles.sectionLabel}>About</Text>
 			<Card>
 				<Text style={styles.appName}>{LEGAL.appName}</Text>
+				<Text style={styles.body}>
+					A personal health journal for dogs — keep notes and history
+					in one place.
+				</Text>
+			</Card>
+
+			<Text style={styles.sectionLabel}>Disclaimer</Text>
+			<Card>
+				<Text style={styles.disclaimerTitle}>
+					Not veterinary advice
+				</Text>
 				<Text style={styles.body}>{LEGAL.disclaimer}</Text>
 			</Card>
 
-			<Text style={styles.sectionLabel}>Legal & support</Text>
+			<Text style={styles.sectionLabel}>Legal</Text>
 			<Card>
 				<TouchableOpacity
 					style={styles.row}
-					onPress={() =>
-						openUrl(LEGAL.privacyPolicyUrl, "Privacy policy")
-					}
+					onPress={() => navigation.navigate("PrivacyPolicy")}
 					accessibilityRole="button"
 					accessibilityLabel="Privacy policy"
 				>
@@ -87,19 +106,27 @@ export default function SettingsScreen({ navigation }: Props) {
 						color={colors.textSecondary}
 					/>
 				</TouchableOpacity>
-				<View style={styles.divider} />
+			</Card>
+
+			<Text style={styles.sectionLabel}>Feedback</Text>
+			<Card>
 				<TouchableOpacity
 					style={styles.row}
-					onPress={() => openUrl(LEGAL.supportUrl, "Support")}
+					onPress={() =>
+						openMail(
+							"K9Care feedback",
+							"Hi K9Care team,\n\nHere’s my feedback:\n\n",
+						)
+					}
 					accessibilityRole="button"
-					accessibilityLabel="Support"
+					accessibilityLabel="Send feedback"
 				>
 					<Ionicons
-						name="help-circle-outline"
+						name="chatbubble-ellipses-outline"
 						size={22}
 						color={colors.primary}
 					/>
-					<Text style={styles.rowLabel}>Support</Text>
+					<Text style={styles.rowLabel}>Send feedback</Text>
 					<Ionicons
 						name="chevron-forward"
 						size={18}
@@ -110,17 +137,20 @@ export default function SettingsScreen({ navigation }: Props) {
 				<TouchableOpacity
 					style={styles.row}
 					onPress={() =>
-						Linking.openURL(`mailto:${LEGAL.supportEmail}`)
+						openMail(
+							"K9Care bug report",
+							"Hi K9Care team,\n\nI found a bug / issue:\n\nWhat happened:\n\nWhat I expected:\n\nDevice / browser:\n\n",
+						)
 					}
 					accessibilityRole="button"
-					accessibilityLabel="Email support"
+					accessibilityLabel="Report a bug or issue"
 				>
 					<Ionicons
-						name="mail-outline"
+						name="bug-outline"
 						size={22}
 						color={colors.primary}
 					/>
-					<Text style={styles.rowLabel}>{LEGAL.supportEmail}</Text>
+					<Text style={styles.rowLabel}>Report a bug or issue</Text>
 					<Ionicons
 						name="chevron-forward"
 						size={18}
@@ -143,7 +173,6 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		paddingHorizontal: 16,
-		paddingTop: 48,
 		paddingBottom: 40,
 	},
 	headerRow: {
@@ -174,6 +203,11 @@ const styles = StyleSheet.create({
 	},
 	appName: {
 		...textStyles.cardTitle,
+		marginBottom: spacing.sm,
+	},
+	disclaimerTitle: {
+		...textStyles.cardTitle,
+		fontSize: 16,
 		marginBottom: spacing.sm,
 	},
 	body: {

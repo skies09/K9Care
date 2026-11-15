@@ -23,6 +23,7 @@ import AnxietyScreen from '../screens/AnxietyScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import EditDogScreen from '../screens/EditDogScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 export type RootTabParamList = {
   HomeTab: undefined;
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   Tabs: undefined;
   EditDog: { dogId: string };
   Settings: undefined;
+  PrivacyPolicy: undefined;
   VetReport: undefined;
   Breathing: undefined;
   Seizures: undefined;
@@ -149,6 +151,11 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PrivacyPolicy"
+          component={PrivacyPolicyScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
