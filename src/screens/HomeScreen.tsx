@@ -88,47 +88,56 @@ const CONDITION_STAT_CONFIG: Record<
 		label: string;
 		icon: BrandIconName;
 		statKey: keyof HomeStats;
+		screen: keyof RootStackParamList;
 	}
 > = {
 	heart: {
 		label: "Breathing checks",
 		icon: "heart",
 		statKey: "breathingCount",
+		screen: "Breathing",
 	},
 	epilepsy: {
 		label: "Seizure events",
 		icon: "seizures",
 		statKey: "seizureCount",
+		screen: "Seizures",
 	},
 	arthritis: {
 		label: "Mobility check-ins",
 		icon: "arthritis",
 		statKey: "mobilityCount",
+		screen: "Arthritis",
 	},
 	allergy: {
 		label: "Allergy logs",
 		icon: "allergies",
 		statKey: "allergyCount",
+		screen: "Allergies",
 	},
 	digestive: {
 		label: "Digestion logs",
 		icon: "digestion",
 		statKey: "stoolCount",
+		screen: "Digestive",
 	},
 	diabetes: {
 		label: "Insulin / glucose",
 		icon: "diabetes",
 		statKey: "insulinCount",
+		screen: "Diabetes",
 	},
 	kidney: {
 		label: "Kidney logs",
 		icon: "kidney",
 		statKey: "kidneyCount",
+		screen: "Kidney",
 	},
 	anxiety: {
 		label: "Anxiety episodes",
 		icon: "anxiety",
 		statKey: "anxietyCount",
+		screen: "Anxiety",
 	},
 };
 
@@ -556,7 +565,15 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 						/>
 					) : (
 						<View style={styles.statsGrid}>
-							<View style={styles.statTile}>
+							<TouchableOpacity
+								style={styles.statTile}
+								onPress={() =>
+									parentNavigation.navigate("Weight")
+								}
+								activeOpacity={0.85}
+								accessibilityRole="button"
+								accessibilityLabel="Open weight logs"
+							>
 								<BrandIcon name="weight" size={28} />
 								<Text style={styles.statValue}>
 									{stats.weightLogsCount}
@@ -564,7 +581,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 								<Text style={styles.statLabel}>
 									Weight logs
 								</Text>
-							</View>
+							</TouchableOpacity>
 							{conditionTags.map((tag) => {
 								const config = CONDITION_STAT_CONFIG[tag];
 								if (!config) return null;
@@ -574,7 +591,18 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 											stats.glucoseCount
 										: (stats[config.statKey] as number);
 								return (
-									<View key={tag} style={styles.statTile}>
+									<TouchableOpacity
+										key={tag}
+										style={styles.statTile}
+										onPress={() =>
+											parentNavigation.navigate(
+												config.screen,
+											)
+										}
+										activeOpacity={0.85}
+										accessibilityRole="button"
+										accessibilityLabel={`Open ${config.label}`}
+									>
 										<BrandIcon
 											name={config.icon}
 											size={28}
@@ -585,10 +613,16 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 										<Text style={styles.statLabel}>
 											{config.label}
 										</Text>
-									</View>
+									</TouchableOpacity>
 								);
 							})}
-							<View style={styles.statTile}>
+							<TouchableOpacity
+								style={styles.statTile}
+								onPress={() => navigation.navigate("MedsTab")}
+								activeOpacity={0.85}
+								accessibilityRole="button"
+								accessibilityLabel="Open medications"
+							>
 								<BrandIcon name="medication" size={28} />
 								<Text style={styles.statValue}>
 									{stats.medsCount}
@@ -596,7 +630,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 								<Text style={styles.statLabel}>
 									Medications
 								</Text>
-							</View>
+							</TouchableOpacity>
 						</View>
 					)}
 					{!loading && !hasAnyData && (

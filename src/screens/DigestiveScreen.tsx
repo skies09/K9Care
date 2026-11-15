@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +20,7 @@ import { useDogContext } from '../context/DogContext';
 import { StoolLog } from '../types';
 import { colors } from '../theme/colors';
 import { fonts, textStyles } from '../theme/typography';
+import { showAlert } from '../utils/showAlert';
 
 const DigestiveScreen: React.FC = () => {
   const { currentDog } = useDogContext();
@@ -69,9 +69,20 @@ const DigestiveScreen: React.FC = () => {
 
   const toggle = (value: boolean, setter: (v: boolean) => void) => setter(!value);
 
+  const toggleBlood = () => {
+    const next = !hasBlood;
+    setHasBlood(next);
+    if (next) {
+      showAlert(
+        'Contact your vet immediately',
+        'Blood in stool can be serious. Call your vet or an emergency clinic straight away for advice.',
+      );
+    }
+  };
+
   const handleSave = () => {
     if (!currentDog) {
-      Alert.alert('Add a dog first', 'You need a dog profile to log digestion.');
+      showAlert('Add a dog first', 'You need a dog profile to log digestion.');
       return;
     }
     const scoreVal = Number(stoolScore);
@@ -120,7 +131,7 @@ const DigestiveScreen: React.FC = () => {
         setNotes('');
       })
       .catch(() => {
-        Alert.alert('Error', 'Could not save digestion log.');
+        showAlert('Error', 'Could not save digestion log.');
       });
   };
 
@@ -169,7 +180,7 @@ const DigestiveScreen: React.FC = () => {
         <View style={styles.toggleRow}>
           <TouchableOpacity
             style={[styles.toggleChip, hasBlood && styles.toggleChipActive]}
-            onPress={() => toggle(hasBlood, setHasBlood)}
+            onPress={toggleBlood}
           >
             <Text
               style={[styles.toggleText, hasBlood && styles.toggleTextActive]}
@@ -188,6 +199,18 @@ const DigestiveScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
+        {hasBlood && (
+          <View style={styles.bloodWarning}>
+            <Ionicons
+              name="warning-outline"
+              size={18}
+              color={colors.danger}
+            />
+            <Text style={styles.bloodWarningText}>
+              Blood in stool can be serious — contact your vet immediately.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.toggleRow}>
           <TouchableOpacity
@@ -343,6 +366,25 @@ const styles = StyleSheet.create({
   toggleRow: {
     flexDirection: 'row',
     marginBottom: 8,
+  },
+  bloodWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.danger,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  bloodWarningText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.danger,
+    lineHeight: 18,
   },
   toggleChip: {
     paddingHorizontal: 10,
