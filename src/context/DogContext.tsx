@@ -7,8 +7,9 @@ import React, {
   useState,
 } from 'react';
 import { initDb, getDb } from '../db/database';
-import { ConditionTag, Dog } from '../types';
+import { ConditionTag, Dog, WeightUnit } from '../types';
 import { showAlert } from '../utils/showAlert';
+import { normalizeWeightUnit } from '../utils/weightUnits';
 
 type DogContextValue = {
   dogs: Dog[];
@@ -20,6 +21,7 @@ type DogContextValue = {
     breed?: string | null;
     dob?: string | null;
     weightKg?: number | null;
+    weightUnit?: WeightUnit;
     notes?: string | null;
     primaryConditions?: ConditionTag[];
   }) => Promise<void>;
@@ -30,6 +32,7 @@ type DogContextValue = {
       breed?: string | null;
       dob?: string | null;
       weightKg?: number | null;
+      weightUnit?: WeightUnit;
       notes?: string | null;
       photoUri?: string | null;
       primaryConditions?: ConditionTag[];
@@ -59,6 +62,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         breed: row.breed,
         dob: row.dob,
         weightKg: row.weightKg,
+        weightUnit: normalizeWeightUnit(row.weightUnit),
         notes: row.notes,
         primaryConditions: row.primaryConditions
           ? (JSON.parse(row.primaryConditions) as string[])
@@ -89,6 +93,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       breed = null,
       dob = null,
       weightKg = null,
+      weightUnit = 'kg',
       notes = null,
       primaryConditions = [],
     }: {
@@ -96,6 +101,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       breed?: string | null;
       dob?: string | null;
       weightKg?: number | null;
+      weightUnit?: WeightUnit;
       notes?: string | null;
       primaryConditions?: ConditionTag[];
     }) => {
@@ -112,13 +118,14 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const id = `dog_${Date.now()}`;
+      const unit = normalizeWeightUnit(weightUnit);
       try {
         await database.runAsync(
           `
-          INSERT INTO dogs (id, name, breed, dob, weightKg, notes, primaryConditions)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO dogs (id, name, breed, dob, weightKg, weightUnit, notes, primaryConditions)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
-          [id, trimmedName, breed, dob, weightKg, notes, primaryConditions.length ? JSON.stringify(primaryConditions) : null]
+          [id, trimmedName, breed, dob, weightKg, unit, notes, primaryConditions.length ? JSON.stringify(primaryConditions) : null]
         );
 
         const newDog: Dog = {
@@ -127,6 +134,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           breed,
           dob,
           weightKg,
+          weightUnit: unit,
           notes,
           primaryConditions,
         };
@@ -152,6 +160,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         breed = null,
         dob = null,
         weightKg = null,
+        weightUnit,
         notes = null,
         photoUri,
         primaryConditions,
@@ -160,6 +169,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         breed?: string | null;
         dob?: string | null;
         weightKg?: number | null;
+        weightUnit?: WeightUnit;
         notes?: string | null;
         photoUri?: string | null;
         primaryConditions?: ConditionTag[];
@@ -171,14 +181,19 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!dog) return;
       const newName = name !== undefined ? name.trim() : dog.name;
       if (!newName) return;
+      const nextUnit =
+        weightUnit !== undefined
+          ? normalizeWeightUnit(weightUnit)
+          : normalizeWeightUnit(dog.weightUnit);
       try {
         await database.runAsync(
-          `UPDATE dogs SET name = ?, breed = ?, dob = ?, weightKg = ?, notes = ?, photoUri = ?, primaryConditions = ? WHERE id = ?`,
+          `UPDATE dogs SET name = ?, breed = ?, dob = ?, weightKg = ?, weightUnit = ?, notes = ?, photoUri = ?, primaryConditions = ? WHERE id = ?`,
           [
             newName,
             breed ?? dog.breed,
             dob ?? dog.dob,
             weightKg ?? dog.weightKg,
+            nextUnit,
             notes ?? dog.notes,
             photoUri !== undefined ? photoUri : dog.photoUri,
             primaryConditions !== undefined
@@ -197,6 +212,7 @@ export const DogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   breed: breed ?? d.breed,
                   dob: dob ?? d.dob,
                   weightKg: weightKg ?? d.weightKg,
+                  weightUnit: nextUnit,
                   notes: notes ?? d.notes,
                   photoUri: photoUri !== undefined ? photoUri : d.photoUri,
                   primaryConditions:

@@ -6,22 +6,22 @@ import {
 	TextInput,
 	TouchableOpacity,
 	FlatList,
-	Alert,
 	ScrollView,
 	KeyboardAvoidingView,
 	Platform,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { getDb } from "../db/database";
 import { useDogContext } from "../context/DogContext";
 import { Medication, Vaccination } from "../types";
 import { colors } from "../theme/colors";
-import { fonts, textStyles } from '../theme/typography';
+import { textStyles } from '../theme/typography';
 import {
 	ensureNotificationPermissions,
-	scheduleOneOffNotification,
+	scheduleDailyNotification,
 } from "../services/notifications";
 import { BrandIcon } from "../components/BrandIcon";
+import { AppDateTimePicker } from "../components/AppDateTimePicker";
+import { showAlert } from "../utils/showAlert";
 
 type MedsTab = "meds" | "vaccines";
 
@@ -46,31 +46,27 @@ const MedsScreen: React.FC = () => {
 	const [name, setName] = useState("");
 	const [dose, setDose] = useState("");
 	const [unit, setUnit] = useState("mg");
-	const [time, setTime] = useState("08:00");
+	const [notes, setNotes] = useState("");
 	const [timeObj, setTimeObj] = useState<Date>(() => {
-		const [h, m] = "08:00".split(":").map((v) => Number(v));
 		const now = new Date();
 		return new Date(
 			now.getFullYear(),
 			now.getMonth(),
 			now.getDate(),
-			h || 8,
-			m || 0,
+			8,
+			0,
 			0,
 		);
 	});
-	const [showTimePicker, setShowTimePicker] = useState(false);
+	const time = formatTimeHHMM(timeObj);
 	// When adding a med, which dog it's for (synced with current dog when switching from other tabs)
 	const [addMedForDogId, setAddMedForDogId] = useState<string | null>(
 		currentDogId,
 	);
 
 	const [vaccineName, setVaccineName] = useState("");
-	const [vaccineDate, setVaccineDate] = useState(
-		new Date().toISOString().slice(0, 10),
-	);
 	const [vaccineDateObj, setVaccineDateObj] = useState<Date>(new Date());
-	const [showVaccineDatePicker, setShowVaccineDatePicker] = useState(false);
+	const vaccineDate = formatDateYYYYMMDD(vaccineDateObj);
 	const [vaccineNotes, setVaccineNotes] = useState("");
 	const [addVaccineForDogId, setAddVaccineForDogId] = useState<string | null>(
 		currentDogId,
@@ -136,46 +132,44 @@ const MedsScreen: React.FC = () => {
 		void load();
 	}, [currentDog]);
 
-	useEffect(() => {
-		const parsed = new Date(`${vaccineDate}T00:00:00`);
-		if (!Number.isNaN(parsed.getTime())) {
-			setVaccineDateObj(parsed);
-		}
-	}, [vaccineDate]);
-
-	useEffect(() => {
-		const parts = time.split(":");
-		const hours = Number(parts[0]);
-		const minutes = Number(parts[1] ?? 0);
-		if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
-		const now = new Date();
-		setTimeObj(
-			new Date(
-				now.getFullYear(),
-				now.getMonth(),
-				now.getDate(),
-				hours,
-				minutes,
-				0,
-			),
-		);
-	}, [time]);
-
 	const handleAdd = async () => {
 		const dogForMed =
 			dogs.length >= 1 && addMedForDogId
 				? (dogs.find((d) => d.id === addMedForDogId) ?? null)
 				: currentDog;
 		if (!dogForMed) {
-			Alert.alert(
+			showAlert(
 				"Add a dog first",
 				"You need a dog profile to add medications.",
 			);
 			return;
 		}
+
 		const trimmedName = name.trim();
-		if (!trimmedName) return;
-		const numericDose = Number(dose) || 0;
+		const trimmedUnit = unit.trim();
+		const numericDose = Number(dose);
+		const missing: string[] = [];
+		if (!trimmedName) missing.push("name");
+		if (!dose.trim() || !Number.isFinite(numericDose) || numericDose <= 0) {
+			missing.push("dose");
+		}
+		if (!trimmedUnit) missing.push("unit");
+
+		if (missing.length > 0) {
+			const fields =
+				missing.length === 1
+					? missing[0]
+					: missing.length === 2
+						? `${missing[0]} and ${missing[1]}`
+						: `${missing.slice(0, -1).join(", ")}, and ${missing[missing.length - 1]}`;
+			showAlert(
+				"Nothing saved",
+				`Please fill in the ${fields} before saving.`,
+			);
+			return;
+		}
+
+		const trimmedNotes = notes.trim() || null;
 		const id = `med_${Date.now()}`;
 		const db = getDb();
 		const timesOfDayJson = JSON.stringify([time]);
@@ -183,16 +177,17 @@ const MedsScreen: React.FC = () => {
 
 		try {
 			await db.runAsync(
-				"INSERT INTO medications (id, dogId, name, dose, unit, scheduleType, timesOfDayJson, startDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				"INSERT INTO medications (id, dogId, name, dose, unit, scheduleType, timesOfDayJson, startDate, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				[
 					id,
 					dogForMed.id,
 					trimmedName,
 					numericDose,
-					unit,
+					trimmedUnit,
 					"times-per-day",
 					timesOfDayJson,
 					today,
+					trimmedNotes,
 				],
 			);
 			const item: Medication = {
@@ -200,40 +195,31 @@ const MedsScreen: React.FC = () => {
 				dogId: dogForMed.id,
 				name: trimmedName,
 				dose: numericDose,
-				unit,
+				unit: trimmedUnit,
 				scheduleType: "times-per-day",
 				timesOfDayJson,
 				startDate: today,
+				notes: trimmedNotes,
 			};
 			if (dogForMed.id === currentDog?.id) {
 				setMeds((prev) => [...prev, item]);
 			}
 		} catch {
-			Alert.alert("Error", "Could not save medication.");
+			showAlert("Error", "Could not save medication.");
+			return;
 		}
 
 		setName("");
 		setDose("");
+		setNotes("");
 
 		await ensureNotificationPermissions();
-		const [hours, minutes] = time.split(":").map((val) => Number(val));
-		const now = new Date();
-		const triggerDate = new Date(
-			now.getFullYear(),
-			now.getMonth(),
-			now.getDate(),
-			hours,
-			minutes || 0,
-			0,
-		);
-		if (triggerDate.getTime() <= now.getTime()) {
-			triggerDate.setDate(triggerDate.getDate() + 1);
-		}
-		await scheduleOneOffNotification({
+		await scheduleDailyNotification({
 			identifier: id,
 			title: `Medication for ${dogForMed.name}`,
-			body: `${trimmedName} – ${numericDose || ""} ${unit}`.trim(),
-			triggerDate,
+			body: `${trimmedName} – ${numericDose} ${trimmedUnit}`.trim(),
+			hour: timeObj.getHours(),
+			minute: timeObj.getMinutes(),
 		});
 	};
 
@@ -243,7 +229,7 @@ const MedsScreen: React.FC = () => {
 				? (dogs.find((d) => d.id === addVaccineForDogId) ?? null)
 				: currentDog;
 		if (!dogForVaccine) {
-			Alert.alert(
+			showAlert(
 				"Add a dog first",
 				"You need a dog profile to add vaccine dates.",
 			);
@@ -252,7 +238,20 @@ const MedsScreen: React.FC = () => {
 
 		const trimmedName = vaccineName.trim();
 		const trimmedDate = vaccineDate.trim();
-		if (!trimmedName || !trimmedDate) return;
+		if (!trimmedName) {
+			showAlert(
+				"Nothing saved",
+				"Please enter a vaccine name before saving.",
+			);
+			return;
+		}
+		if (!trimmedDate) {
+			showAlert(
+				"Nothing saved",
+				"Please choose a due date before saving.",
+			);
+			return;
+		}
 
 		const id = `vax_${Date.now()}`;
 		const createdAt = new Date().toISOString();
@@ -282,12 +281,13 @@ const MedsScreen: React.FC = () => {
 				setVaccines((prev) => [item, ...prev]);
 			}
 		} catch {
-			Alert.alert("Error", "Could not save vaccine date.");
+			showAlert("Error", "Could not save vaccine date.");
+			return;
 		}
 
 		setVaccineName("");
 		setVaccineNotes("");
-		setVaccineDate(formatDateYYYYMMDD(new Date()));
+		setVaccineDateObj(new Date());
 	};
 
 	return (
@@ -372,6 +372,11 @@ const MedsScreen: React.FC = () => {
 											).join(", ")}
 										</Text>
 									)}
+									{!!item.notes && (
+										<Text style={styles.listItemSub}>
+											Note: {item.notes}
+										</Text>
+									)}
 								</View>
 							)}
 							ListEmptyComponent={
@@ -452,45 +457,22 @@ const MedsScreen: React.FC = () => {
 									onChangeText={setUnit}
 								/>
 							</View>
-							<TouchableOpacity
-								style={[styles.input, styles.dateInput]}
-								onPress={() => setShowTimePicker(true)}
-								activeOpacity={0.8}
-							>
-								<Text style={styles.dateInputLabel}>Time</Text>
-								<Text style={styles.dateInputValue}>{time}</Text>
-							</TouchableOpacity>
-							{showTimePicker && (
-								<View style={styles.datePickerWrap}>
-									<DateTimePicker
-										value={timeObj}
-										mode="time"
-										display={
-											Platform.OS === "ios"
-												? "spinner"
-												: "default"
-										}
-										onChange={(_, selectedDate) => {
-											if (Platform.OS !== "ios") {
-												setShowTimePicker(false);
-											}
-											if (!selectedDate) return;
-											setTimeObj(selectedDate);
-											setTime(formatTimeHHMM(selectedDate));
-										}}
-									/>
-									{Platform.OS === "ios" && (
-										<TouchableOpacity
-											style={styles.datePickerDone}
-											onPress={() => setShowTimePicker(false)}
-										>
-											<Text style={styles.datePickerDoneText}>
-												Done
-											</Text>
-										</TouchableOpacity>
-									)}
-								</View>
-							)}
+							<AppDateTimePicker
+								mode="time"
+								label="Time"
+								value={timeObj}
+								displayValue={time}
+								onChange={setTimeObj}
+							/>
+							<TextInput
+								style={[styles.input, styles.notesInput]}
+								placeholder="Notes (e.g. reduce dose after 10 days – 25 Nov)"
+								placeholderTextColor={colors.textSecondary}
+								value={notes}
+								onChangeText={setNotes}
+								multiline
+								textAlignVertical="top"
+							/>
 							<TouchableOpacity
 								style={styles.primaryButton}
 								onPress={handleAdd}
@@ -587,59 +569,13 @@ const MedsScreen: React.FC = () => {
 								value={vaccineName}
 								onChangeText={setVaccineName}
 							/>
-							<TouchableOpacity
-								style={[styles.input, styles.dateInput]}
-								onPress={() => setShowVaccineDatePicker(true)}
-								activeOpacity={0.8}
-							>
-								<Text style={styles.dateInputLabel}>
-									Due date
-								</Text>
-								<Text style={styles.dateInputValue}>
-									{vaccineDate}
-								</Text>
-							</TouchableOpacity>
-							{showVaccineDatePicker && (
-								<View style={styles.datePickerWrap}>
-									<DateTimePicker
-										value={vaccineDateObj}
-										mode="date"
-										display={
-											Platform.OS === "ios"
-												? "spinner"
-												: "default"
-										}
-										onChange={(_, selectedDate) => {
-											if (Platform.OS !== "ios") {
-												setShowVaccineDatePicker(false);
-											}
-											if (!selectedDate) return;
-											setVaccineDateObj(selectedDate);
-											setVaccineDate(
-												formatDateYYYYMMDD(
-													selectedDate,
-												),
-											);
-										}}
-									/>
-									{Platform.OS === "ios" && (
-										<TouchableOpacity
-											style={styles.datePickerDone}
-											onPress={() =>
-												setShowVaccineDatePicker(false)
-											}
-										>
-											<Text
-												style={
-													styles.datePickerDoneText
-												}
-											>
-												Done
-											</Text>
-										</TouchableOpacity>
-									)}
-								</View>
-							)}
+							<AppDateTimePicker
+								mode="date"
+								label="Due date"
+								value={vaccineDateObj}
+								displayValue={vaccineDate}
+								onChange={setVaccineDateObj}
+							/>
 							<TextInput
 								style={styles.input}
 								placeholder="Notes (optional)"
@@ -807,39 +743,10 @@ const styles = StyleSheet.create({
 		color: colors.textPrimary,
 		marginBottom: 8,
 	},
-	dateInput: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	dateInputLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: colors.textSecondary,
-	},
-	dateInputValue: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: colors.textPrimary,
-	},
-	datePickerWrap: {
-		marginTop: -4,
-		marginBottom: 8,
-		borderRadius: 12,
-		overflow: "hidden",
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: colors.border,
-		backgroundColor: colors.cardBackground,
-	},
-	datePickerDone: {
-		paddingVertical: 10,
-		alignItems: "center",
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: colors.border,
-	},
-	datePickerDoneText: {
-		color: colors.primary,
-		fontWeight: "700",
+	notesInput: {
+		height: 72,
+		paddingTop: 10,
+		paddingBottom: 10,
 	},
 	row: {
 		flexDirection: "row",

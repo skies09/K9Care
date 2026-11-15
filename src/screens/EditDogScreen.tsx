@@ -31,6 +31,12 @@ import {
 	parseDobParts,
 	type DobParts,
 } from "../utils/dobFormat";
+import {
+	formatWeightValue,
+	normalizeWeightUnit,
+	toKg,
+	type WeightUnit,
+} from "../utils/weightUnits";
 
 function defaultDobParts(): DobParts {
 	return { year: new Date().getFullYear() - 2, month: 0, day: 0 };
@@ -66,10 +72,16 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 		initialDobParts(dog?.dob),
 	);
 	const [showDobPicker, setShowDobPicker] = useState(false);
-	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
-	const [weight, setWeight] = useState(
-		dog?.weightKg != null ? String(dog.weightKg) : "",
+	const [weightUnit, setWeightUnit] = useState<WeightUnit>(() =>
+		normalizeWeightUnit(dog?.weightUnit),
 	);
+	const [weight, setWeight] = useState(() => {
+		if (dog?.weightKg == null) return "";
+		return formatWeightValue(
+			dog.weightKg,
+			normalizeWeightUnit(dog.weightUnit),
+		);
+	});
 	const [notes, setNotes] = useState(dog?.notes ?? "");
 	const [photoUri, setPhotoUri] = useState<string | null>(
 		dog?.photoUri ?? null,
@@ -85,9 +97,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 			const weightNum = weight.trim() ? parseFloat(weight) : null;
 			const weightKg =
 				weightNum != null && Number.isFinite(weightNum)
-					? weightUnit === "kg"
-						? weightNum
-						: weightNum * 0.453592
+					? toKg(weightNum, weightUnit)
 					: null;
 			return {
 				name: name.trim(),
@@ -95,6 +105,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 				dob: dob.trim() || null,
 				weightKg:
 					weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
+				weightUnit,
 				notes: notes.trim() || null,
 				photoUri: photo,
 				primaryConditions: selectedConditions,
@@ -102,6 +113,16 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 		},
 		[name, breed, dob, weight, weightUnit, notes, selectedConditions],
 	);
+
+	const changeWeightUnit = (next: WeightUnit) => {
+		if (next === weightUnit) return;
+		const weightNum = weight.trim() ? parseFloat(weight) : null;
+		if (weightNum != null && Number.isFinite(weightNum)) {
+			const asKg = toKg(weightNum, weightUnit);
+			setWeight(formatWeightValue(asKg, next));
+		}
+		setWeightUnit(next);
+	};
 
 	// Auto-save form fields (debounced). Skip first mount.
 	useEffect(() => {
@@ -116,7 +137,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 			setCurrentDogId(dogId);
 		}, 600);
 		return () => clearTimeout(t);
-	}, [dogId, name, breed, dob, weight, notes, selectedConditions]);
+	}, [dogId, name, breed, dob, weight, weightUnit, notes, selectedConditions]);
 
 	const handleDobChange = (parts: DobParts) => {
 		setDobParts(parts);
@@ -313,7 +334,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 										styles.unitChip,
 										weightUnit === "kg" && styles.unitChipActive,
 									]}
-									onPress={() => setWeightUnit("kg")}
+									onPress={() => changeWeightUnit("kg")}
 									activeOpacity={0.85}
 								>
 									<Text
@@ -331,7 +352,7 @@ const EditDogScreen: React.FC<Props> = ({ route, navigation }) => {
 										styles.unitChip,
 										weightUnit === "lb" && styles.unitChipActive,
 									]}
-									onPress={() => setWeightUnit("lb")}
+									onPress={() => changeWeightUnit("lb")}
 									activeOpacity={0.85}
 								>
 									<Text

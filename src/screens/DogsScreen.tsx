@@ -23,6 +23,7 @@ import { Button as AppButton } from '../components/ui/Button';
 import { colors } from '../theme/colors';
 import { fonts, textStyles } from '../theme/typography';
 import { showConfirm } from '../utils/showAlert';
+import { formatWeight, normalizeWeightUnit } from '../utils/weightUnits';
 
 const CONDITION_LABELS: Record<ConditionTag, string> = {
   heart: 'Heart',
@@ -167,7 +168,13 @@ const DogsScreen: React.FC = () => {
                     {item.breed ? <Text style={styles.dogDetail}>{item.breed}</Text> : null}
                     {age ? <Text style={styles.dogDetail}>Age: {age}</Text> : null}
                     {item.weightKg != null ? (
-                      <Text style={styles.dogDetail}>Weight: {item.weightKg} kg</Text>
+                      <Text style={styles.dogDetail}>
+                        Weight:{' '}
+                        {formatWeight(
+                          item.weightKg,
+                          normalizeWeightUnit(item.weightUnit),
+                        )}
+                      </Text>
                     ) : null}
                     {item.notes ? <Text style={styles.dogDetail}>Notes: {item.notes}</Text> : null}
                     {conditionsText ? (

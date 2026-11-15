@@ -6,19 +6,25 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	ActivityIndicator,
-	Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import { useDogContext } from "../context/DogContext";
 import { getDb } from "../db/database";
 import { colors } from "../theme/colors";
 import { fonts, textStyles } from '../theme/typography';
 import { Button as AppButton } from "../components/ui/Button";
+import {
+	buildFullVetReportHtml,
+	buildSectionVetReportHtml,
+	isVetSectionEnabled,
+	type VetSectionKey,
+} from "../utils/vetReportHtml";
+import { shareVetReportPdf } from "../utils/shareVetReportPdf";
+import { showAlert } from "../utils/showAlert";
+import { formatWeight, normalizeWeightUnit } from "../utils/weightUnits";
 
 type ReportData = {
 	weightLogs: Array<{
@@ -37,6 +43,7 @@ type ReportData = {
 		dose: number;
 		unit: string;
 		startDate: string;
+		notes?: string | null;
 	}>;
 	allergyLogs: Array<{
 		createdAt: string;
@@ -141,7 +148,7 @@ const VetReportScreen: React.FC = () => {
 					[dogId],
 				),
 				db.getAllAsync<any>(
-					"SELECT name, dose, unit, startDate FROM medications WHERE dogId = ?",
+					"SELECT name, dose, unit, startDate, notes FROM medications WHERE dogId = ?",
 					[dogId],
 				),
 				db.getAllAsync<any>(
@@ -193,6 +200,7 @@ const VetReportScreen: React.FC = () => {
 					dose: r.dose,
 					unit: r.unit,
 					startDate: r.startDate,
+					notes: r.notes,
 				})),
 				allergyLogs: (allergyRows || []).map((r: any) => ({
 					createdAt: r.createdAt,
@@ -239,425 +247,73 @@ const VetReportScreen: React.FC = () => {
 		loadReport();
 	}, [loadReport]);
 
-	const buildHtml = useCallback((): string => {
-		const dogName = currentDog?.name ?? "Dog";
-		const reportDate = formatDate(new Date().toISOString());
-		const section = (title: string, rows: string) =>
-			rows
-				? `<h2 style="margin-top:20px;margin-bottom:8px;font-size:16px;color:#1A202C;">${title}</h2><table style="width:100%;border-collapse:collapse;font-size:13px;">${rows}</table>`
-				: "";
-
-		const weightRows = data.weightLogs
-			.slice(0, 50)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.weightKg} kg</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.note || "-"}</td></tr>`,
-			)
-			.join("");
-		const breathingRows = data.breathingChecks
-			.slice(0, 50)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.breathsPerMinute} /min</td></tr>`,
-			)
-			.join("");
-		const seizureRows = data.seizureEvents
-			.slice(0, 50)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(r.startTime)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.durationSeconds}s</td></tr>`,
-			)
-			.join("");
-		const medRows = data.medications
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.name}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.dose} ${r.unit}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">From ${formatDate(r.startDate)}</td></tr>`,
-			)
-			.join("");
-		const allergyRows = data.allergyLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">Itch ${r.itchSeverity ?? "-"}/5</td></tr>`,
-			)
-			.join("");
-		const mobilityRows = data.mobilityLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">Pain ${r.overallPain ?? "-"}/5</td></tr>`,
-			)
-			.join("");
-		const stoolRows = data.stoolLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">Score ${r.stoolScore ?? "-"}/7</td></tr>`,
-			)
-			.join("");
-		const insulinRows = data.insulinLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(r.givenAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.doseUnits} units</td></tr>`,
-			)
-			.join("");
-		const glucoseRows = data.glucoseReadings
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(r.takenAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.value}</td></tr>`,
-			)
-			.join("");
-		const kidneyRows = data.kidneyLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">Water ${r.waterIntakeMl ?? "-"} ml, Urinations ${r.urinationCount ?? "-"}</td></tr>`,
-			)
-			.join("");
-		const anxietyRows = data.anxietyLogs
-			.slice(0, 30)
-			.map(
-				(r) =>
-					`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(r.createdAt)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${r.trigger} ${r.severity != null ? `(${r.severity}/5)` : ""}</td></tr>`,
-			)
-			.join("");
-
-		return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; color: #1A202C; font-size: 14px; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    .meta { color: #4A5568; font-size: 13px; margin-bottom: 24px; }
-    th { text-align: left; padding: 6px; border-bottom: 2px solid #E2E8F0; font-weight: 600; }
-  </style>
-</head>
-<body>
-  <h1>K9Care – Vet report</h1>
-  <p class="meta">${dogName} · Report generated ${reportDate}</p>
-  ${section("Weight", weightRows ? `<tr><th>Date</th><th>Weight</th><th>Note</th></tr>${weightRows}` : "")}
-  ${section("Breathing (resting bpm)", breathingRows ? `<tr><th>Date & time</th><th>Breaths/min</th></tr>${breathingRows}` : "")}
-  ${section("Seizure events", seizureRows ? `<tr><th>Start time</th><th>Duration</th></tr>${seizureRows}` : "")}
-  ${section("Medications", medRows ? `<tr><th>Name</th><th>Dose</th><th>Started</th></tr>${medRows}` : "")}
-  ${section("Allergy / skin logs", allergyRows ? `<tr><th>Date</th><th>Itch severity</th></tr>${allergyRows}` : "")}
-  ${section("Mobility / arthritis", mobilityRows ? `<tr><th>Date</th><th>Pain (1-5)</th></tr>${mobilityRows}` : "")}
-  ${section("Digestion / stool", stoolRows ? `<tr><th>Date</th><th>Stool score</th></tr>${stoolRows}` : "")}
-  ${section("Insulin doses", insulinRows ? `<tr><th>Date & time</th><th>Units</th></tr>${insulinRows}` : "")}
-  ${section("Glucose readings", glucoseRows ? `<tr><th>Date & time</th><th>Value</th></tr>${glucoseRows}` : "")}
-  ${section("Kidney / urinary", kidneyRows ? `<tr><th>Date</th><th>Details</th></tr>${kidneyRows}` : "")}
-  ${section("Anxiety episodes", anxietyRows ? `<tr><th>Date</th><th>Trigger / severity</th></tr>${anxietyRows}` : "")}
-</body>
-</html>`;
-	}, [currentDog, data]);
-
-	type SectionKey =
-		| "weight"
-		| "breathing"
-		| "seizures"
-		| "medications"
-		| "allergy"
-		| "mobility"
-		| "stool"
-		| "insulin"
-		| "glucose"
-		| "kidney"
-		| "anxiety";
-
-	const buildSectionHtml = useCallback(
-		(section: SectionKey): string => {
-			const dogName = currentDog?.name ?? "Dog";
-			const reportDate = formatDate(new Date().toISOString());
-			const wrap = (title: string, headerRow: string, rows: string) => {
-				if (!rows) return "";
-				return `<h2 style="margin-top:20px;margin-bottom:8px;font-size:16px;color:#1A202C;">${title}</h2><table style="width:100%;border-collapse:collapse;font-size:13px;"><tr>${headerRow}</tr>${rows}</table>`;
-			};
-
-			let title = "";
-			let header = "";
-			let rows = "";
-
-			switch (section) {
-				case "weight":
-					title = "Weight";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Weight</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Note</th>';
-					rows = data.weightLogs
-						.slice(0, 50)
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.weightKg
-								} kg</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.note || "-"
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "breathing":
-					title = "Breathing (resting bpm)";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date & time</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Breaths/min</th>';
-					rows = data.breathingChecks
-						.slice(0, 50)
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.breathsPerMinute
-								} /min</td></tr>`,
-						)
-						.join("");
-					break;
-				case "seizures":
-					title = "Seizure events";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Start time</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Duration</th>';
-					rows = data.seizureEvents
-						.slice(0, 50)
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(
-									r.startTime,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.durationSeconds
-								}s</td></tr>`,
-						)
-						.join("");
-					break;
-				case "medications":
-					title = "Medications";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Name</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Dose</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Started</th>';
-					rows = data.medications
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.name
-								}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.dose
-								} ${
-									r.unit
-								}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.startDate,
-								)}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "allergy":
-					title = "Allergy / skin logs";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Itch severity</th>';
-					rows = data.allergyLogs
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.itchSeverity ?? "-"
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "mobility":
-					title = "Mobility / arthritis";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Pain (1-5)</th>';
-					rows = data.mobilityLogs
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.overallPain ?? "-"
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "stool":
-					title = "Digestion / stool";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Stool score</th>';
-					rows = data.stoolLogs
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.stoolScore ?? "-"
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "insulin":
-					title = "Insulin doses";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date & time</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Units</th>';
-					rows = data.insulinLogs
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(
-									r.givenAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.doseUnits
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "glucose":
-					title = "Glucose readings";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date & time</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Value</th>';
-					rows = data.glucoseReadings
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDateTime(
-									r.takenAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.value
-								}</td></tr>`,
-						)
-						.join("");
-					break;
-				case "kidney":
-					title = "Kidney / urinary";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Details</th>';
-					rows = data.kidneyLogs
-						.map((r) => {
-							const parts = [];
-							if (r.waterIntakeMl != null)
-								parts.push(`Water: ${r.waterIntakeMl} ml`);
-							if (r.urinationCount != null)
-								parts.push(`Urination: ${r.urinationCount}x`);
-							const details = parts.join(" · ") || "-";
-							return `<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-								r.createdAt,
-							)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${details}</td></tr>`;
-						})
-						.join("");
-					break;
-				case "anxiety":
-					title = "Anxiety episodes";
-					header =
-						'<th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Date</th><th style="text-align:left;padding:6px;border-bottom:2px solid #E2E8F0;">Trigger / severity</th>';
-					rows = data.anxietyLogs
-						.map(
-							(r) =>
-								`<tr><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${formatDate(
-									r.createdAt,
-								)}</td><td style="padding:6px;border-bottom:1px solid #E2E8F0;">${
-									r.trigger
-								} (${r.severity ?? "-"})</td></tr>`,
-						)
-						.join("");
-					break;
-			}
-
-			const sectionHtml = wrap(title, header, rows);
-
-			return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>K9Care – Vet report</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; color: #1A202C; font-size: 14px; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    .meta { color: #4A5568; font-size: 13px; margin-bottom: 24px; }
-    th { text-align: left; padding: 6px; border-bottom: 2px solid #E2E8F0; font-weight: 600; }
-  </style>
-</head>
-<body>
-  <h1>K9Care – Vet report</h1>
-  <p class="meta">${dogName} · ${title} · Generated ${reportDate}</p>
-  ${sectionHtml || "<p>No data for this section.</p>"}
-</body>
-</html>`;
-		},
-		[currentDog, data],
-	);
+	type SectionKey = VetSectionKey;
 
 	const handleDownloadPdf = async () => {
 		if (!currentDog) {
-			Alert.alert(
-				"No dog selected",
-				"Select a dog to generate a report.",
-			);
+			showAlert("No dog selected", "Select a dog to generate a report.");
 			return;
 		}
 		try {
-			const html = buildHtml();
-			const { uri } = await Print.printToFileAsync({
+			const html = buildFullVetReportHtml(
+				currentDog.name,
+				data,
+				currentDog.primaryConditions,
+				normalizeWeightUnit(currentDog.weightUnit),
+			);
+			await shareVetReportPdf(
 				html,
-				base64: false,
-			});
-			const canShare = await Sharing.isAvailableAsync();
-			if (canShare) {
-				await Sharing.shareAsync(uri, {
-					mimeType: "application/pdf",
-					dialogTitle: `Vet report – ${currentDog.name}`,
-				});
-			} else {
-				Alert.alert(
-					"Saved",
-					`PDF saved. You can find it in your app's cache.`,
-				);
-			}
+				`Health summary – ${currentDog.name}`,
+			);
 		} catch (e: any) {
-			Alert.alert("Error", e?.message ?? "Could not generate PDF.");
+			showAlert("Error", e?.message ?? "Could not generate PDF.");
 		}
 	};
 
 	const handleDownloadSection = async (section: SectionKey, label: string) => {
 		if (!currentDog) {
-			Alert.alert(
-				"No dog selected",
-				"Select a dog to generate a report.",
-			);
+			showAlert("No dog selected", "Select a dog to generate a report.");
 			return;
 		}
 		try {
-			const html = buildSectionHtml(section);
-			const { uri } = await Print.printToFileAsync({
+			const html = buildSectionVetReportHtml(
+				currentDog.name,
+				section,
+				data,
+				currentDog.primaryConditions,
+				normalizeWeightUnit(currentDog.weightUnit),
+			);
+			await shareVetReportPdf(
 				html,
-				base64: false,
-			});
-			const canShare = await Sharing.isAvailableAsync();
-			if (canShare) {
-				await Sharing.shareAsync(uri, {
-					mimeType: "application/pdf",
-					dialogTitle: `Vet report – ${currentDog.name} – ${label}`,
-				});
-			} else {
-				Alert.alert(
-					"Saved",
-					`PDF saved. You can find it in your app's cache.`,
-				);
-			}
+				`Health summary – ${currentDog.name} – ${label}`,
+			);
 		} catch (e: any) {
-			Alert.alert("Error", e?.message ?? "Could not generate PDF.");
+			showAlert("Error", e?.message ?? "Could not generate PDF.");
 		}
 	};
 
+	const conditions = currentDog?.primaryConditions ?? [];
+	const showBreathing = isVetSectionEnabled("breathing", conditions);
+	const showSeizures = isVetSectionEnabled("seizures", conditions);
+	const showAllergy = isVetSectionEnabled("allergy", conditions);
+	const showMobility = isVetSectionEnabled("mobility", conditions);
+	const showStool = isVetSectionEnabled("stool", conditions);
+	const showDiabetes = isVetSectionEnabled("insulin", conditions);
+	const showKidney = isVetSectionEnabled("kidney", conditions);
+	const showAnxiety = isVetSectionEnabled("anxiety", conditions);
+
 	const hasAnyData =
 		data.weightLogs.length > 0 ||
-		data.breathingChecks.length > 0 ||
-		data.seizureEvents.length > 0 ||
 		data.medications.length > 0 ||
-		data.allergyLogs.length > 0 ||
-		data.mobilityLogs.length > 0 ||
-		data.stoolLogs.length > 0 ||
-		data.insulinLogs.length > 0 ||
-		data.glucoseReadings.length > 0 ||
-		data.kidneyLogs.length > 0 ||
-		data.anxietyLogs.length > 0;
+		(showBreathing && data.breathingChecks.length > 0) ||
+		(showSeizures && data.seizureEvents.length > 0) ||
+		(showAllergy && data.allergyLogs.length > 0) ||
+		(showMobility && data.mobilityLogs.length > 0) ||
+		(showStool && data.stoolLogs.length > 0) ||
+		(showDiabetes &&
+			(data.insulinLogs.length > 0 || data.glucoseReadings.length > 0)) ||
+		(showKidney && data.kidneyLogs.length > 0) ||
+		(showAnxiety && data.anxietyLogs.length > 0);
 
 	return (
 		<>
@@ -681,16 +337,21 @@ const VetReportScreen: React.FC = () => {
 					/>
 				</TouchableOpacity>
 				<Text style={styles.title}>Vet report</Text>
-				<Text style={styles.subtitle}>
-					{currentDog ? (
-						<>
-							Summary for {currentDog.name}.{"\n"}Download as PDF
-							to share with your vet.
-						</>
-					) : (
-						"Add a dog to generate a report."
-					)}
-				</Text>
+				{currentDog ? (
+					<>
+						<Text style={styles.dogName}>{currentDog.name}</Text>
+						<Text style={styles.subtitle}>
+							A clear health summary for your vet.
+							{"\n"}
+							PDFs include a simple graph and a detailed table —
+							easy for you to check, and useful for your vet.
+						</Text>
+					</>
+				) : (
+					<Text style={styles.subtitle}>
+						Add a dog to generate a report.
+					</Text>
+				)}
 
 				{loading ? (
 					<ActivityIndicator
@@ -718,7 +379,12 @@ const VetReportScreen: React.FC = () => {
 													style={styles.blockRow}
 												>
 													{formatDate(r.createdAt)} –{" "}
-													{r.weightKg} kg
+													{formatWeight(
+														r.weightKg,
+														normalizeWeightUnit(
+															currentDog.weightUnit,
+														),
+													)}
 													{r.note
 														? ` · ${r.note}`
 														: ""}
@@ -741,12 +407,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.breathingChecks.length > 0 && (
+								{showBreathing && data.breathingChecks.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Breathing (resting)
@@ -786,12 +452,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.seizureEvents.length > 0 && (
+								{showSeizures && data.seizureEvents.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Seizure events
@@ -829,7 +495,7 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
@@ -846,6 +512,9 @@ const VetReportScreen: React.FC = () => {
 											>
 												{r.name} – {r.dose} {r.unit}{" "}
 												(from {formatDate(r.startDate)})
+												{r.notes
+													? ` · ${r.notes}`
+													: ""}
 											</Text>
 										))}
 										<TouchableOpacity
@@ -859,12 +528,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.allergyLogs.length > 0 && (
+								{showAllergy && data.allergyLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Allergy / skin
@@ -883,12 +552,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.mobilityLogs.length > 0 && (
+								{showMobility && data.mobilityLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Mobility / arthritis
@@ -907,12 +576,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.stoolLogs.length > 0 && (
+								{showStool && data.stoolLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Digestion
@@ -931,12 +600,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.insulinLogs.length > 0 && (
+								{showDiabetes && data.insulinLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Insulin
@@ -955,12 +624,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.glucoseReadings.length > 0 && (
+								{showDiabetes && data.glucoseReadings.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Glucose
@@ -980,12 +649,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.kidneyLogs.length > 0 && (
+								{showKidney && data.kidneyLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Kidney / urinary
@@ -1004,12 +673,12 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
 								)}
-								{data.anxietyLogs.length > 0 && (
+								{showAnxiety && data.anxietyLogs.length > 0 && (
 									<View style={styles.block}>
 										<Text style={styles.blockTitle}>
 											Anxiety
@@ -1028,7 +697,7 @@ const VetReportScreen: React.FC = () => {
 											activeOpacity={0.8}
 										>
 											<Text style={styles.blockDownloadText}>
-												Download this section as PDF
+												Download PDF
 											</Text>
 										</TouchableOpacity>
 									</View>
@@ -1044,14 +713,10 @@ const VetReportScreen: React.FC = () => {
 
 						<View style={styles.downloadSection}>
 							<AppButton
-								title="Download PDF report"
+								title="Download full PDF"
 								onPress={handleDownloadPdf}
 								style={styles.downloadButton}
 							/>
-							<Text style={styles.downloadHint}>
-								Opens share sheet so you can save and send to
-								your vet.
-							</Text>
 						</View>
 					</>
 				) : (
@@ -1082,6 +747,13 @@ const styles = StyleSheet.create({
 		...textStyles.screenTitle,
 		marginBottom: 4,
 	},
+	dogName: {
+		fontFamily: fonts.headingBold,
+		fontSize: 28,
+		fontWeight: "700",
+		color: colors.primaryBlue,
+		marginBottom: 6,
+	},
 	subtitle: {
 		...textStyles.subtitle,
 		fontSize: 14,
@@ -1091,7 +763,7 @@ const styles = StyleSheet.create({
 		marginVertical: 24,
 	},
 	sections: {
-		marginBottom: 24,
+		marginBottom: 0,
 	},
 	block: {
 		backgroundColor: colors.cardBackground,
@@ -1135,18 +807,14 @@ const styles = StyleSheet.create({
 	emptyText: {
 		fontSize: 14,
 		color: colors.textSecondary,
-		marginBottom: 20,
+		marginBottom: 12,
 	},
 	downloadSection: {
-		marginTop: 8,
+		marginTop: 4,
 	},
 	downloadButton: {
-		alignSelf: "flex-start",
-		marginBottom: 8,
-	},
-	downloadHint: {
-		fontSize: 12,
-		color: colors.textSecondary,
+		alignSelf: "stretch",
+		width: "100%",
 	},
 });
 

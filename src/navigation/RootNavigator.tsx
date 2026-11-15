@@ -108,8 +108,8 @@ function Tabs() {
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
-      <Tab.Screen name="DogsTab" component={DogsScreen} options={{ title: 'Dogs' }} />
       <Tab.Screen name="TrackTab" component={TrackScreen} options={{ title: 'Track' }} />
+      <Tab.Screen name="DogsTab" component={DogsScreen} options={{ title: 'Dogs' }} />
       <Tab.Screen name="MedsTab" component={MedsScreen} options={{ title: 'Meds' }} />
     </Tab.Navigator>
   );

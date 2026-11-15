@@ -8,6 +8,8 @@ export type ConditionTag =
   | 'kidney'
   | 'anxiety';
 
+export type WeightUnit = 'kg' | 'lb';
+
 export interface Dog {
   id: string;
   name: string;
@@ -15,6 +17,8 @@ export interface Dog {
   breed?: string | null;
   dob?: string | null;
   weightKg?: number | null;
+  /** Preferred unit for entering/displaying weight. Values are still stored as kg. */
+  weightUnit?: WeightUnit;
   notes?: string | null;
   primaryConditions?: ConditionTag[];
 }

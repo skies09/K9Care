@@ -14,6 +14,7 @@ const MIGRATIONS_SQL = `
       breed TEXT,
       dob TEXT,
       weightKg REAL,
+      weightUnit TEXT DEFAULT 'kg',
       notes TEXT,
       primaryConditions TEXT
     );
@@ -180,8 +181,24 @@ const MIGRATIONS_SQL = `
     );
 `;
 
+async function ensureColumn(
+  database: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+  definition: string,
+) {
+  const rows = await database.getAllAsync<{ name: string }>(
+    `PRAGMA table_info(${table})`,
+  );
+  if (rows.some((row) => row.name === column)) return;
+  await database.execAsync(
+    `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`,
+  );
+}
+
 async function runMigrations(database: SQLite.SQLiteDatabase) {
   await database.execAsync(MIGRATIONS_SQL);
+  await ensureColumn(database, 'dogs', 'weightUnit', "TEXT DEFAULT 'kg'");
 }
 
 /** Open DB asynchronously (required on web before sync APIs). */
@@ -222,4 +239,9 @@ export function getDb(): SQLite.SQLiteDatabase {
 
 function databaseExecSyncFallback(database: SQLite.SQLiteDatabase) {
   database.execSync(MIGRATIONS_SQL);
+  try {
+    database.execSync("ALTER TABLE dogs ADD COLUMN weightUnit TEXT DEFAULT 'kg'");
+  } catch {
+    // Column already exists
+  }
 }

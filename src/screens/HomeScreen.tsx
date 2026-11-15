@@ -23,6 +23,11 @@ import { Card } from "../components/ui/Card";
 import { Button as AppButton } from "../components/ui/Button";
 import { BrandIcon, BrandIconName } from "../components/BrandIcon";
 import { Ionicons } from "@expo/vector-icons";
+import {
+	formatWeight,
+	formatWeightValue,
+	normalizeWeightUnit,
+} from "../utils/weightUnits";
 import type { ConditionTag } from "../types";
 
 type TabProps = BottomTabScreenProps<RootTabParamList, "HomeTab">;
@@ -240,6 +245,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 	);
 
 	const conditionTags = currentDog?.primaryConditions ?? [];
+	const weightUnit = normalizeWeightUnit(currentDog?.weightUnit);
 	const hasAnyData =
 		stats.weightLogsCount > 0 ||
 		stats.medsCount > 0 ||
@@ -333,7 +339,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 							<Text style={styles.weightSubtitle}>
 								{currentDog
 									? stats.recentWeights.length > 0
-										? `Latest: ${stats.recentWeights[0]} kg`
+										? `Latest: ${formatWeight(stats.recentWeights[0], weightUnit)}`
 										: "Log weight for " + currentDog.name
 									: "Add a dog first"}
 							</Text>
@@ -341,41 +347,72 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 					</View>
 					{stats.recentWeights.length > 0 && (
 						<View style={styles.miniChart}>
-							<Text style={styles.miniChartLabel}>
-								Last {stats.recentWeights.length} entries
-							</Text>
-							<View style={styles.barRow}>
-								{stats.recentWeights
-									.slice(0, 5)
-									.map((kg, i) => {
-										const max = Math.max(
-											...stats.recentWeights,
-										);
-										const h = max > 0 ? (kg / max) * 24 : 0;
-										return (
-											<View
-												key={i}
-												style={[
-													styles.bar,
-													{ height: Math.max(h, 4) },
-												]}
-											/>
-										);
-									})}
-							</View>
-							<View style={styles.barLabels}>
-								{stats.recentWeights
-									.slice(0, 5)
-									.map((kg, i) => (
-										<Text
-											key={i}
-											style={styles.barLabel}
-											numberOfLines={1}
-										>
-											{kg}
+							{(() => {
+								// recentWeights is newest-first; chart shows oldest → latest (right).
+								const chartWeightsKg = [
+									...stats.recentWeights.slice(0, 5),
+								].reverse();
+								const chartWeights = chartWeightsKg.map((kg) =>
+									Number(formatWeightValue(kg, weightUnit)),
+								);
+								const latestIndex = chartWeights.length - 1;
+								const max = Math.max(...chartWeights);
+								return (
+									<>
+										<Text style={styles.miniChartLabel}>
+											Last {chartWeights.length} entries (
+											{weightUnit})
 										</Text>
-									))}
-							</View>
+										<View style={styles.barRow}>
+											{chartWeights.map((value, i) => {
+												const h =
+													max > 0
+														? (value / max) * 24
+														: 0;
+												const isLatest =
+													i === latestIndex;
+												return (
+													<View
+														key={i}
+														style={[
+															styles.bar,
+															isLatest &&
+																styles.barLatest,
+															{
+																height: Math.max(
+																	h,
+																	4,
+																),
+															},
+														]}
+													/>
+												);
+											})}
+										</View>
+										<View style={styles.barLabels}>
+											{chartWeights.map((value, i) => {
+												const isLatest =
+													i === latestIndex;
+												return (
+													<Text
+														key={i}
+														style={[
+															styles.barLabel,
+															isLatest &&
+																styles.barLabelLatest,
+														]}
+														numberOfLines={2}
+													>
+														{isLatest
+															? `Latest\n${value}`
+															: String(value)}
+													</Text>
+												);
+											})}
+										</View>
+									</>
+								);
+							})()}
 						</View>
 					)}
 					{currentDog && (
@@ -642,13 +679,19 @@ const styles = StyleSheet.create({
 	},
 	bar: {
 		flex: 1,
-		backgroundColor: colors.primary,
+		backgroundColor: colors.secondary,
 		borderRadius: 4,
 		minWidth: 4,
+		opacity: 0.55,
+	},
+	barLatest: {
+		backgroundColor: colors.primary,
+		opacity: 1,
 	},
 	barLabels: {
 		flexDirection: "row",
 		justifyContent: "space-between",
+		alignItems: "flex-start",
 		marginTop: 4,
 		gap: 4,
 	},
@@ -657,6 +700,11 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		color: colors.textSecondary,
 		textAlign: "center",
+	},
+	barLabelLatest: {
+		color: colors.primary,
+		fontWeight: "700",
+		fontSize: 10,
 	},
 	weightCardButton: {
 		alignSelf: "flex-start",

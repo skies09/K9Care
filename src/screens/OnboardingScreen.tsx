@@ -26,6 +26,11 @@ import {
 	parseDobParts,
 	type DobParts,
 } from "../utils/dobFormat";
+import {
+	formatWeightValue,
+	toKg,
+	type WeightUnit,
+} from "../utils/weightUnits";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Onboarding">;
 
@@ -91,7 +96,16 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 	const [date, setDate] = useState("");
 	const [dobParts, setDobParts] = useState<DobParts>(defaultDobParts);
 	const [weight, setWeight] = useState("");
-	const [weightUnit, setWeightUnit] = useState<"kg" | "lb">("kg");
+	const [weightUnit, setWeightUnit] = useState<WeightUnit>("kg");
+
+	const changeWeightUnit = (next: WeightUnit) => {
+		if (next === weightUnit) return;
+		const numeric = weight.trim() ? Number(weight) : null;
+		if (numeric != null && Number.isFinite(numeric)) {
+			setWeight(formatWeightValue(toKg(numeric, weightUnit), next));
+		}
+		setWeightUnit(next);
+	};
 	const [selectedConditions, setSelectedConditions] = useState<
 		ConditionTag[]
 	>([]);
@@ -152,19 +166,18 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
 	const handleFinish = async () => {
 		try {
-			const parsedWeightKg = !weight.trim()
-				? null
-				: weightUnit === "kg"
-					? Number(weight)
-					: Number(weight) * 0.453592;
+			const entered = weight.trim() ? Number(weight) : null;
+			const parsedWeightKg =
+				entered != null && Number.isFinite(entered)
+					? toKg(entered, weightUnit)
+					: null;
 
 			await addDog({
 				name,
 				breed: breed.trim() || null,
 				dob: date.trim() || null,
-				weightKg: Number.isFinite(parsedWeightKg || NaN)
-					? parsedWeightKg
-					: null,
+				weightKg: parsedWeightKg,
+				weightUnit,
 				primaryConditions: selectedConditions,
 			});
 
@@ -322,7 +335,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 											weightUnit === "kg" &&
 												styles.chipOnLightActive,
 										]}
-										onPress={() => setWeightUnit("kg")}
+										onPress={() => changeWeightUnit("kg")}
 									>
 										<Text
 											style={[
@@ -340,7 +353,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 											weightUnit === "lb" &&
 												styles.chipOnLightActive,
 										]}
-										onPress={() => setWeightUnit("lb")}
+										onPress={() => changeWeightUnit("lb")}
 									>
 										<Text
 											style={[

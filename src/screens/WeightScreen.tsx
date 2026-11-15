@@ -19,14 +19,22 @@ import { useDogContext } from '../context/DogContext';
 import { WeightLog } from '../types';
 import { colors } from '../theme/colors';
 import { fonts, textStyles } from '../theme/typography';
+import {
+  formatWeight,
+  formatWeightValue,
+  normalizeWeightUnit,
+  toKg,
+  type WeightUnit,
+} from '../utils/weightUnits';
 
 const WeightScreen: React.FC = () => {
-  const { currentDog } = useDogContext();
+  const { currentDog, updateDog } = useDogContext();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [weight, setWeight] = useState('');
   const [note, setNote] = useState('');
   const [logs, setLogs] = useState<WeightLog[]>([]);
+  const weightUnit = normalizeWeightUnit(currentDog?.weightUnit);
 
   useEffect(() => {
     if (!currentDog) {
@@ -55,6 +63,15 @@ const WeightScreen: React.FC = () => {
     void load();
   }, [currentDog]);
 
+  const changeWeightUnit = (next: WeightUnit) => {
+    if (!currentDog || next === weightUnit) return;
+    const numeric = weight.trim() ? Number(weight) : null;
+    if (numeric != null && Number.isFinite(numeric)) {
+      setWeight(formatWeightValue(toKg(numeric, weightUnit), next));
+    }
+    void updateDog(currentDog.id, { weightUnit: next });
+  };
+
   const handleSave = () => {
     if (!currentDog) {
       Alert.alert('Add a dog first', 'You need a dog profile to log weight.');
@@ -62,18 +79,28 @@ const WeightScreen: React.FC = () => {
     }
     const numeric = Number(weight);
     if (!Number.isFinite(numeric) || numeric <= 0) {
-      Alert.alert('Enter weight', 'Please enter a positive weight in kg.');
+      Alert.alert(
+        'Enter weight',
+        `Please enter a positive weight in ${weightUnit}.`,
+      );
       return;
     }
+    const weightKg = toKg(numeric, weightUnit);
     const id = `weight_${Date.now()}`;
     const createdAt = new Date().toISOString();
     const db = getDb();
     db.runAsync(
       'INSERT INTO weight_logs (id, dogId, weightKg, createdAt, note) VALUES (?, ?, ?, ?, ?)',
-      [id, currentDog.id, numeric, createdAt, note || null]
+      [id, currentDog.id, weightKg, createdAt, note || null]
     )
       .then(() => {
-        const item: WeightLog = { id, dogId: currentDog.id, weightKg: numeric, createdAt, note };
+        const item: WeightLog = {
+          id,
+          dogId: currentDog.id,
+          weightKg,
+          createdAt,
+          note,
+        };
         setLogs((prev) => [item, ...prev]);
         setWeight('');
         setNote('');
@@ -118,7 +145,9 @@ const WeightScreen: React.FC = () => {
                 <BrandIcon name="weight" size={26} />
                 <Text style={styles.latestLabel}>Latest</Text>
               </View>
-              <Text style={styles.latestValue}>{logs[0].weightKg.toFixed(1)} kg</Text>
+              <Text style={styles.latestValue}>
+                {formatWeight(logs[0].weightKg, weightUnit)}
+              </Text>
             </View>
           )}
 
@@ -130,18 +159,58 @@ const WeightScreen: React.FC = () => {
               <View style={styles.cardTitleBlock}>
                 <Text style={styles.cardTitle}>Log weight</Text>
                 <Text style={styles.cardSubtitle}>
-                  {currentDog ? `Weight in kg for ${currentDog.name}` : 'Add a dog first'}
+                  {currentDog
+                    ? `Weight in ${weightUnit} for ${currentDog.name}`
+                    : 'Add a dog first'}
                 </Text>
               </View>
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Weight (kg)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              value={weight}
-              onChangeText={setWeight}
-            />
+            <View style={styles.weightRow}>
+              <TextInput
+                style={[styles.input, styles.weightInput]}
+                placeholder={`Weight (${weightUnit})`}
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                value={weight}
+                onChangeText={setWeight}
+              />
+              <View style={styles.unitToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.unitChip,
+                    weightUnit === 'kg' && styles.unitChipActive,
+                  ]}
+                  onPress={() => changeWeightUnit('kg')}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.unitChipText,
+                      weightUnit === 'kg' && styles.unitChipTextActive,
+                    ]}
+                  >
+                    kg
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.unitChip,
+                    weightUnit === 'lb' && styles.unitChipActive,
+                  ]}
+                  onPress={() => changeWeightUnit('lb')}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.unitChipText,
+                      weightUnit === 'lb' && styles.unitChipTextActive,
+                    ]}
+                  >
+                    lb
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             <TextInput
               style={[styles.input, styles.noteInput]}
               placeholder="Optional note (diet change, etc.)"
@@ -162,7 +231,9 @@ const WeightScreen: React.FC = () => {
           ListHeaderComponent={<Text style={styles.listTitle}>Recent weights</Text>}
           renderItem={({ item }) => (
             <View style={styles.listItem}>
-              <Text style={styles.listItemTitle}>{item.weightKg.toFixed(1)} kg</Text>
+              <Text style={styles.listItemTitle}>
+                {formatWeight(item.weightKg, weightUnit)}
+              </Text>
               <Text style={styles.listItemSub}>
                 {new Date(item.createdAt).toLocaleDateString()}
               </Text>
@@ -270,6 +341,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weightInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    marginLeft: 8,
+  },
+  unitChip: {
+    minWidth: 52,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  unitChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  unitChipText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  unitChipTextActive: {
+    color: colors.primary,
   },
   input: {
     height: 44,
