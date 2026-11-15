@@ -28,7 +28,25 @@ import {
 	formatWeightValue,
 	normalizeWeightUnit,
 } from "../utils/weightUnits";
-import type { ConditionTag } from "../types";
+import type { ConditionTag, VetAppointment } from "../types";
+
+function formatDateYYYYMMDD(date: Date): string {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
+}
+
+function formatAppointmentDate(isoDate: string): string {
+	const parsed = new Date(`${isoDate}T00:00:00`);
+	if (Number.isNaN(parsed.getTime())) return isoDate;
+	return parsed.toLocaleDateString(undefined, {
+		weekday: "short",
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	});
+}
 
 type TabProps = BottomTabScreenProps<RootTabParamList, "HomeTab">;
 
@@ -237,11 +255,48 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 	const { stats, loading, refresh } = useHomeStats(currentDog?.id ?? null);
 	const parentNavigation =
 		useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+	const [appointments, setAppointments] = useState<VetAppointment[]>([]);
+
+	const loadAppointments = useCallback(async () => {
+		if (!currentDog?.id) {
+			setAppointments([]);
+			return;
+		}
+		const db = getDb();
+		const today = formatDateYYYYMMDD(new Date());
+		try {
+			const rows = await db.getAllAsync<any>(
+				`SELECT * FROM vet_appointments
+         WHERE dogId = ? AND appointmentDate >= ?
+         ORDER BY appointmentDate ASC, appointmentTime ASC
+         LIMIT 10`,
+				[currentDog.id, today],
+			);
+			setAppointments(
+				(rows || []).map((row) => ({
+					id: row.id,
+					dogId: row.dogId,
+					appointmentDate: row.appointmentDate,
+					appointmentTime: row.appointmentTime,
+					reason: row.reason,
+					notes: row.notes,
+					createdAt: row.createdAt,
+				})),
+			);
+		} catch {
+			setAppointments([]);
+		}
+	}, [currentDog?.id]);
 
 	useFocusEffect(
 		useCallback(() => {
-			if (currentDog?.id) refresh();
-		}, [currentDog?.id, refresh]),
+			if (currentDog?.id) {
+				refresh();
+				void loadAppointments();
+			} else {
+				setAppointments([]);
+			}
+		}, [currentDog?.id, refresh, loadAppointments]),
 	);
 
 	const conditionTags = currentDog?.primaryConditions ?? [];
@@ -428,20 +483,20 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 			{/* Seizures quick access – only when epilepsy is selected for this dog */}
 			{currentDog?.primaryConditions?.includes("epilepsy") && (
 				<TouchableOpacity
-					style={styles.seizureCard}
+					style={styles.quickCard}
 					onPress={() => parentNavigation.navigate("Seizures")}
 					activeOpacity={0.9}
 				>
-					<View style={styles.seizureCardInner}>
-						<View style={styles.seizureHeader}>
-							<View style={styles.seizureIconWrap}>
+					<View style={styles.quickCardInner}>
+						<View style={styles.quickHeader}>
+							<View style={styles.quickIconWrap}>
 								<BrandIcon name="seizures" size={36} />
 							</View>
-							<View style={styles.seizureTitleBlock}>
-								<Text style={styles.seizureTitle}>
+							<View style={styles.quickTitleBlock}>
+								<Text style={styles.quickTitle}>
 									Seizures
 								</Text>
-								<Text style={styles.seizureSubtitle}>
+								<Text style={styles.quickSubtitle}>
 									Start timer quickly for {currentDog.name}
 								</Text>
 							</View>
@@ -451,7 +506,39 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 							onPress={() =>
 								parentNavigation.navigate("Seizures")
 							}
-							style={styles.seizureCardButton}
+							style={styles.quickCardButton}
+						/>
+					</View>
+				</TouchableOpacity>
+			)}
+
+			{/* Breathing quick access – under seizures when both are selected */}
+			{currentDog?.primaryConditions?.includes("heart") && (
+				<TouchableOpacity
+					style={styles.quickCard}
+					onPress={() => parentNavigation.navigate("Breathing")}
+					activeOpacity={0.9}
+				>
+					<View style={styles.quickCardInner}>
+						<View style={styles.quickHeader}>
+							<View style={styles.quickIconWrap}>
+								<BrandIcon name="heart" size={36} />
+							</View>
+							<View style={styles.quickTitleBlock}>
+								<Text style={styles.quickTitle}>Breathing</Text>
+								<Text style={styles.quickSubtitle}>
+									{stats.recentBreathing.length > 0
+										? `Latest: ${stats.recentBreathing[0]} / min`
+										: `Log resting breathing for ${currentDog.name}`}
+								</Text>
+							</View>
+						</View>
+						<AppButton
+							title="Log breathing"
+							onPress={() =>
+								parentNavigation.navigate("Breathing")
+							}
+							style={styles.quickCardButton}
 						/>
 					</View>
 				</TouchableOpacity>
@@ -538,6 +625,59 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 						onPress={() => parentNavigation.navigate("VetReport")}
 						style={styles.vetReportButton}
 					/>
+				</Card>
+			</View>
+
+			{/* Upcoming vet appointments */}
+			<View style={styles.section}>
+				<Text style={styles.sectionTitle}>Upcoming vet visits</Text>
+				<Card>
+					{appointments.length > 0 ? (
+						<>
+							<View style={styles.appointmentList}>
+								{appointments.map((item) => (
+									<View
+										key={item.id}
+										style={styles.appointmentRow}
+									>
+										<View
+											style={styles.appointmentTextBlock}
+										>
+											<Text style={styles.appointmentDate}>
+												{formatAppointmentDate(
+													item.appointmentDate,
+												)}
+											</Text>
+											<Text
+												style={styles.appointmentReason}
+											>
+												{item.reason?.trim() ||
+													"Vet appointment"}
+											</Text>
+										</View>
+									</View>
+								))}
+							</View>
+							<AppButton
+								title="Add another visit"
+								onPress={() =>
+									parentNavigation.navigate(
+										"VetAppointments",
+									)
+								}
+								style={styles.appointmentSaveButton}
+							/>
+						</>
+					) : (
+						<AppButton
+							title="Add upcoming vet visit"
+							onPress={() =>
+								parentNavigation.navigate("VetAppointments")
+							}
+							disabled={!currentDog}
+							style={styles.appointmentSaveButton}
+						/>
+					)}
 				</Card>
 			</View>
 		</ScrollView>
@@ -709,7 +849,7 @@ const styles = StyleSheet.create({
 	weightCardButton: {
 		alignSelf: "flex-start",
 	},
-	seizureCard: {
+	quickCard: {
 		backgroundColor: colors.cardBackground,
 		borderRadius: 16,
 		borderWidth: 1,
@@ -722,15 +862,15 @@ const styles = StyleSheet.create({
 		shadowRadius: 4,
 		elevation: 2,
 	},
-	seizureCardInner: {
+	quickCardInner: {
 		padding: spacing.lg,
 	},
-	seizureHeader: {
+	quickHeader: {
 		flexDirection: "row",
 		alignItems: "center",
 		marginBottom: spacing.sm,
 	},
-	seizureIconWrap: {
+	quickIconWrap: {
 		width: 48,
 		height: 48,
 		borderRadius: 24,
@@ -739,18 +879,18 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		marginRight: spacing.md,
 	},
-	seizureTitleBlock: {
+	quickTitleBlock: {
 		flex: 1,
 	},
-	seizureTitle: {
+	quickTitle: {
 		...textStyles.cardTitle,
 	},
-	seizureSubtitle: {
+	quickSubtitle: {
 		fontSize: 14,
 		color: colors.textSecondary,
 		marginTop: 2,
 	},
-	seizureCardButton: {
+	quickCardButton: {
 		alignSelf: "flex-start",
 	},
 	section: {
@@ -794,6 +934,35 @@ const styles = StyleSheet.create({
 		color: colors.textSecondary,
 		fontStyle: "italic",
 		marginTop: spacing.xs,
+	},
+	appointmentList: {
+		marginBottom: spacing.sm,
+	},
+	appointmentRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingVertical: 10,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: colors.border,
+	},
+	appointmentTextBlock: {
+		flex: 1,
+		paddingRight: spacing.sm,
+	},
+	appointmentDate: {
+		fontFamily: fonts.headingSemi,
+		fontSize: 15,
+		fontWeight: "600",
+		color: colors.textPrimary,
+	},
+	appointmentReason: {
+		fontSize: 13,
+		color: colors.textSecondary,
+		marginTop: 2,
+	},
+	appointmentSaveButton: {
+		alignSelf: "flex-start",
+		marginTop: 4,
 	},
 	vetSection: {
 		marginTop: spacing.sm,

@@ -13,6 +13,7 @@ import MedsScreen from '../screens/MedsScreen';
 import BreathingScreen from '../screens/BreathingScreen';
 import SeizuresScreen from '../screens/SeizuresScreen';
 import VetReportScreen from '../screens/VetReportScreen';
+import VetAppointmentsScreen from '../screens/VetAppointmentsScreen';
 import WeightScreen from '../screens/WeightScreen';
 import ArthritisScreen from '../screens/ArthritisScreen';
 import AllergyScreen from '../screens/AllergyScreen';
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   Settings: undefined;
   PrivacyPolicy: undefined;
   VetReport: undefined;
+  VetAppointments: undefined;
   Breathing: undefined;
   Seizures: undefined;
   Weight: undefined;
@@ -162,6 +164,11 @@ export default function RootNavigator() {
           name="VetReport"
           component={VetReportScreen}
           options={{ title: 'Vet Report', headerShown: false }}
+        />
+        <Stack.Screen
+          name="VetAppointments"
+          component={VetAppointmentsScreen}
+          options={{ title: 'Vet visits', headerShown: false }}
         />
         <Stack.Screen
           name="Breathing"

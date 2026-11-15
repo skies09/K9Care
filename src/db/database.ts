@@ -169,6 +169,17 @@ const MIGRATIONS_SQL = `
       FOREIGN KEY(dogId) REFERENCES dogs(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS vet_appointments (
+      id TEXT PRIMARY KEY NOT NULL,
+      dogId TEXT NOT NULL,
+      appointmentDate TEXT NOT NULL,
+      appointmentTime TEXT,
+      reason TEXT,
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(dogId) REFERENCES dogs(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS anxiety_logs (
       id TEXT PRIMARY KEY NOT NULL,
       dogId TEXT NOT NULL,

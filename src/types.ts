@@ -195,4 +195,14 @@ export interface AnxietyLog {
   notes?: string | null;
 }
 
+export interface VetAppointment {
+  id: string;
+  dogId: string;
+  appointmentDate: string; // YYYY-MM-DD
+  appointmentTime?: string | null; // HH:MM
+  reason?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
 
