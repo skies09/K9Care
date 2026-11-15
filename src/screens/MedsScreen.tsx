@@ -466,7 +466,7 @@ const MedsScreen: React.FC = () => {
 							/>
 							<TextInput
 								style={[styles.input, styles.notesInput]}
-								placeholder="Notes (e.g. reduce dose after 10 days – 25 Nov)"
+								placeholder="Optional note — e.g. reduce dose after a number of days, add the date here"
 								placeholderTextColor={colors.textSecondary}
 								value={notes}
 								onChangeText={setNotes}

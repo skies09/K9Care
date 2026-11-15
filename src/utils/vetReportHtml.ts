@@ -485,18 +485,21 @@ export function buildMedicationsSection(data: VetReportData): string {
 	return renderSectionBlock({
 		title: "Medications",
 		ownerNote: "Medicines you’ve logged for your dog.",
-		vetNote: "Name, dose, unit, and start date as recorded by the owner.",
+		vetNote:
+			"Name, dose, unit, start date, and owner notes (e.g. planned dose changes) as recorded.",
 		summary: [{ label: "Medications", value: String(rows.length) }],
 		tableHtml: buildDataTable(
 			[
 				{ header: "Medication" },
 				{ header: "Dose" },
 				{ header: "Started" },
+				{ header: "Notes" },
 			],
 			rows.map((r) => [
 				r.name,
 				`${formatNum(r.dose)} ${r.unit}`,
 				formatReportDate(r.startDate),
+				r.notes?.trim() || "—",
 			]),
 		),
 	});
