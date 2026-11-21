@@ -114,8 +114,8 @@ export default function SettingsScreen({ navigation }: Props) {
 					style={styles.row}
 					onPress={() =>
 						openMail(
-							"K9Care feedback",
-							"Hi K9Care team,\n\nHere’s my feedback:\n\n",
+							"PawDex feedback",
+							"Hi PawDex team,\n\nHere’s my feedback:\n\n",
 						)
 					}
 					accessibilityRole="button"
@@ -138,8 +138,8 @@ export default function SettingsScreen({ navigation }: Props) {
 					style={styles.row}
 					onPress={() =>
 						openMail(
-							"K9Care bug report",
-							"Hi K9Care team,\n\nI found a bug / issue:\n\nWhat happened:\n\nWhat I expected:\n\nDevice / browser:\n\n",
+							"PawDex bug report",
+							"Hi PawDex team,\n\nI found a bug / issue:\n\nWhat happened:\n\nWhat I expected:\n\nDevice / browser:\n\n",
 						)
 					}
 					accessibilityRole="button"

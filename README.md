@@ -1,6 +1,6 @@
-# K9Care
+# PawDex
 
-**K9Care** is a React Native (Expo) app for dog owners to track health conditions, log symptoms, manage medications, and share structured reports with veterinarians. Data stays on the device (SQLite).
+**PawDex** is a React Native (Expo) app for dog owners to track health conditions, log symptoms, manage medications, and share structured reports with veterinarians. Data stays on the device (SQLite).
 
 ---
 
@@ -85,7 +85,7 @@ npm run web
 ## Project layout
 
 ```
-k9care/
+pawdex/
 ├── .nvmrc                 # Suggested Node version (≥20.16)
 └── app/
     ├── README.md           # This file

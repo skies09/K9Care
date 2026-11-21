@@ -330,7 +330,7 @@ const HomeScreen: React.FC<TabProps> = ({ navigation }) => {
 				<View style={styles.brandRow}>
 					<View style={styles.brandLeft}>
 						<BrandIcon name="logo" size={44} />
-						<Text style={styles.title}>K9Care</Text>
+						<Text style={styles.title}>PawDex</Text>
 					</View>
 					<TouchableOpacity
 						style={styles.settingsButton}

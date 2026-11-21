@@ -641,7 +641,7 @@ const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
 			>
 				<View style={styles.headerRow}>
 					<Text style={styles.brand} accessibilityRole="header">
-						K9Care
+						PawDex
 					</Text>
 				</View>
 				<View

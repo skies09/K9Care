@@ -153,7 +153,7 @@ function downloadHtmlFile(html: string, title: string) {
 	const blob = new Blob([html], { type: "text/html;charset=utf-8" });
 	const url = URL.createObjectURL(blob);
 	const anchor = document.createElement("a");
-	const safeName = title.replace(/[^\w\- ]+/g, "").trim() || "K9Care-report";
+	const safeName = title.replace(/[^\w\- ]+/g, "").trim() || "PawDex-report";
 	anchor.href = url;
 	anchor.download = `${safeName}.html`;
 	anchor.rel = "noopener";

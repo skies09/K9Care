@@ -3,15 +3,15 @@ export const LEGAL = {
 	/** Optional hosted URL for store listings; in-app policy is always available. */
 	privacyPolicyUrl: null as string | null,
 	supportUrl: null as string | null,
-	supportEmail: "contact@k9.com",
-	appName: "K9Care",
+	supportEmail: "contact@pawdex.com",
+	appName: "PawDex",
 	disclaimer:
-		"K9Care is for tracking your dog’s health notes and history so you can share them with your vet. It is not veterinary advice, not a diagnosis, and not a substitute for professional care. If anything about your dog concerns you, seek medical advice from your vet straight away.",
+		"PawDex is for tracking your dog’s health notes and history so you can share them with your vet. It is not veterinary advice, not a diagnosis, and not a substitute for professional care. If anything about your dog concerns you, seek medical advice from your vet straight away.",
 	privacyPolicyLastUpdated: "15 November 2026",
 	privacyPolicySections: [
 		{
 			title: "About this policy",
-			body: "K9Care is a simple journal for your dog’s health notes. We don’t ask you to sign up, and we don’t sell your information. This page explains how we look after what you add in the app.",
+			body: "PawDex is a simple journal for your dog’s health notes. We don’t ask you to sign up, and we don’t sell your information. This page explains how we look after what you add in the app.",
 		},
 		{
 			title: "What you might save in the app",
@@ -19,7 +19,7 @@ export const LEGAL = {
 		},
 		{
 			title: "Your notes are yours",
-			body: "What you write in K9Care is for you (and whoever you choose to share it with, like your vet). We don’t use it for ads, and we don’t sell it.",
+			body: "What you write in PawDex is for you (and whoever you choose to share it with, like your vet). We don’t use it for ads, and we don’t sell it.",
 		},
 		{
 			title: "Photos and reminders",
@@ -39,15 +39,15 @@ export const LEGAL = {
 		},
 		{
 			title: "Who the app is for",
-			body: "K9Care is made for adult dog owners and carers looking after their pups — not for children.",
+			body: "PawDex is made for adult dog owners and carers looking after their pups — not for children.",
 		},
 		{
 			title: "If this page changes",
-			body: "As K9Care grows, we might update this policy. We’ll refresh the “Last updated” date at the top when we do.",
+			body: "As PawDex grows, we might update this policy. We’ll refresh the “Last updated” date at the top when we do.",
 		},
 		{
 			title: "Questions?",
-			body: "We’re happy to help. Use Settings → Send feedback, or email us at contact@k9.com.",
+			body: "We’re happy to help. Use Settings → Send feedback, or email us at contact@pawdex.com.",
 		},
 	],
 };

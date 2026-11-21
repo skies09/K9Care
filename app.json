@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "K9Care",
-    "slug": "k9care",
+    "name": "PawDex",
+    "slug": "pawdex",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.donna.k9care"
+      "bundleIdentifier": "com.donna.pawdex"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +22,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.donna.k9care",
+      "package": "com.donna.pawdex",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO"
@@ -37,7 +37,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "K9Care uses your photos to add a picture for each dog.",
+          "photosPermission": "PawDex uses your photos to add a picture for each dog.",
           "cameraPermission": false
         }
       ],

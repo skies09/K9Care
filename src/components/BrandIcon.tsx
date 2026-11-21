@@ -49,7 +49,7 @@ type Props = {
 	opacity?: number;
 };
 
-/** Custom K9 Care illustrated icons (brand teal palette, transparent PNG). */
+/** Custom PawDex illustrated icons (brand teal palette, transparent PNG). */
 export function BrandIcon({ name, size = 28, style, opacity = 1 }: Props) {
 	return (
 		<Image

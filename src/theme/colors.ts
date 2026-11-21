@@ -1,5 +1,5 @@
 /**
- * K9 Care brand palette — veterinary healthcare + approachable pet care.
+ * PawDex brand palette — veterinary healthcare + approachable pet care.
  */
 export const colors = {
   primary: '#1F6F78',

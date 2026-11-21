@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
-const DB_NAME = 'k9care.db';
+const DB_NAME = 'pawdex.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
 let initPromise: Promise<SQLite.SQLiteDatabase> | null = null;

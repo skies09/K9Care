@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { colors } from './colors';
 
-const STYLE_ID = 'k9care-web-focus-styles';
+const STYLE_ID = 'pawdex-web-focus-styles';
 
 /** Replace the browser’s default blue focus ring with brand teal on web. */
 export function installWebFocusStyles() {

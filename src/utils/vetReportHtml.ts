@@ -302,11 +302,11 @@ function wrapDocument(options: {
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>K9Care – Health summary for ${escapeHtml(options.dogName)}</title>
+  <title>PawDex – Health summary for ${escapeHtml(options.dogName)}</title>
   <style>${DOCUMENT_CSS}</style>
 </head>
 <body>
-  <h1>K9Care health summary</h1>
+  <h1>PawDex health summary</h1>
   <p class="dog-name">${escapeHtml(options.dogName)}</p>
   <p class="meta">${escapeHtml(options.subtitle)} · Prepared ${escapeHtml(generated)}</p>
   <div class="intro">
@@ -315,7 +315,7 @@ function wrapDocument(options: {
     This is owner-recorded information — not a diagnosis.
   </div>
   ${options.bodyHtml}
-  <p class="footer">Generated with K9Care. Owner-recorded journal data for discussion with your veterinary team.</p>
+  <p class="footer">Generated with PawDex. Owner-recorded journal data for discussion with your veterinary team.</p>
 </body>
 </html>`;
 }
