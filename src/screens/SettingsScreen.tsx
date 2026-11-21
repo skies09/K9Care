@@ -7,6 +7,7 @@ import {
 	TouchableOpacity,
 	Linking,
 } from "react-native";
+import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -26,6 +27,20 @@ function mailTo(subject: string, body: string) {
 		`body=${encodeURIComponent(body)}`,
 	].join("&");
 	return `mailto:${LEGAL.supportEmail}?${query}`;
+}
+
+function versionLabel() {
+	const version = Constants.expoConfig?.version ?? "1.0.0";
+	const build = Constants.platform?.ios?.buildNumber;
+	return build ? `Version ${version} (${build})` : `Version ${version}`;
+}
+
+async function openExternal(url: string) {
+	try {
+		await Linking.openURL(url);
+	} catch {
+		showAlert("Unable to open link", url);
+	}
 }
 
 async function openMail(subject: string, body: string) {
@@ -76,6 +91,7 @@ export default function SettingsScreen({ navigation }: Props) {
 					A personal health journal for dogs — keep notes and history
 					in one place.
 				</Text>
+				<Text style={styles.version}>{versionLabel()}</Text>
 			</Card>
 
 			<Text style={styles.sectionLabel}>Disclaimer</Text>
@@ -106,6 +122,54 @@ export default function SettingsScreen({ navigation }: Props) {
 						color={colors.textSecondary}
 					/>
 				</TouchableOpacity>
+				{LEGAL.privacyPolicyUrl ? (
+					<>
+						<View style={styles.divider} />
+						<TouchableOpacity
+							style={styles.row}
+							onPress={() => openExternal(LEGAL.privacyPolicyUrl as string)}
+							accessibilityRole="link"
+							accessibilityLabel="Open privacy policy on the web"
+						>
+							<Ionicons
+								name="open-outline"
+								size={22}
+								color={colors.primary}
+							/>
+							<Text style={styles.rowLabel}>
+								Privacy policy on the web
+							</Text>
+							<Ionicons
+								name="chevron-forward"
+								size={18}
+								color={colors.textSecondary}
+							/>
+						</TouchableOpacity>
+					</>
+				) : null}
+				{LEGAL.supportUrl ? (
+					<>
+						<View style={styles.divider} />
+						<TouchableOpacity
+							style={styles.row}
+							onPress={() => openExternal(LEGAL.supportUrl as string)}
+							accessibilityRole="link"
+							accessibilityLabel="Open support page"
+						>
+							<Ionicons
+								name="help-circle-outline"
+								size={22}
+								color={colors.primary}
+							/>
+							<Text style={styles.rowLabel}>Support</Text>
+							<Ionicons
+								name="chevron-forward"
+								size={18}
+								color={colors.textSecondary}
+							/>
+						</TouchableOpacity>
+					</>
+				) : null}
 			</Card>
 
 			<Text style={styles.sectionLabel}>Feedback</Text>
@@ -214,6 +278,12 @@ const styles = StyleSheet.create({
 		...textStyles.body,
 		fontSize: 15,
 		lineHeight: 22,
+		color: colors.textSecondary,
+	},
+	version: {
+		...textStyles.subtitle,
+		fontSize: 13,
+		marginTop: spacing.sm,
 		color: colors.textSecondary,
 	},
 	row: {

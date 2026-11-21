@@ -1,13 +1,17 @@
 /** Legal / support copy used in Settings and store readiness. */
 export const LEGAL = {
-	/** Optional hosted URL for store listings; in-app policy is always available. */
+	/**
+	 * Live HTTPS pages required by App Store Connect.
+	 * Host store/privacy.html and store/support.html, then paste the URLs here.
+	 * See APP_STORE_CHECKLIST.md at the repo root.
+	 */
 	privacyPolicyUrl: null as string | null,
 	supportUrl: null as string | null,
 	supportEmail: "contact@pawdex.com",
 	appName: "PawDex",
 	disclaimer:
 		"PawDex is for tracking your dog’s health notes and history so you can share them with your vet. It is not veterinary advice, not a diagnosis, and not a substitute for professional care. If anything about your dog concerns you, seek medical advice from your vet straight away.",
-	privacyPolicyLastUpdated: "15 November 2026",
+	privacyPolicyLastUpdated: "21 November 2026",
 	privacyPolicySections: [
 		{
 			title: "About this policy",
@@ -18,8 +22,8 @@ export const LEGAL = {
 			body: "Things you add yourself — like your dog’s name, breed, birthday, weight, notes, and the health areas you want to track. You can also add an optional photo, keep day-to-day notes (like breathing, seizures, or meds), and set medication reminders. There’s no account to create.",
 		},
 		{
-			title: "Your notes are yours",
-			body: "What you write in PawDex is for you (and whoever you choose to share it with, like your vet). We don’t use it for ads, and we don’t sell it.",
+			title: "Your notes stay on this device",
+			body: "Dogs, photos, health logs, and medication reminders are stored only on the phone or tablet where you use PawDex. There is no account and no cloud copy. We don’t use analytics, advertising, or tracking, and we don’t sell or share what you enter. A vet report or a feedback email leaves the device only when you choose to send it, through the share sheet or your email app.",
 		},
 		{
 			title: "Photos and reminders",
@@ -34,8 +38,8 @@ export const LEGAL = {
 			body: "If you tap Send feedback or Report a bug, your email app opens and you decide what to write. If you share a vet report, you choose when and with whom to share it.",
 		},
 		{
-			title: "Want to remove a dog?",
-			body: "You can remove a dog anytime from the Dogs screen. That takes their details out of the app.",
+			title: "Removing your data",
+			body: "You can remove a dog anytime from the Dogs screen. That deletes their details from the app. Uninstalling PawDex deletes everything the app stored on that device. There is no separate account to close.",
 		},
 		{
 			title: "Who the app is for",
